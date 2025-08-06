@@ -5,11 +5,15 @@ from shutil import copyfile as shutil__copyfile, rmtree as shutil__rmtree
 import sys
 from urllib.parse import quote_plus, unquote_plus
 from webbrowser import open as webbrowser_open
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from threading import Lock
 
 from PySide6.QtGui import QIcon, QImage
 from PySide6.QtWidgets import QFileDialog
 import requests
 from requests_html import HTMLSession
+
+
 
 from .constants import WIKI_IMAGE_URL, WIKI_URL
 from .textedit import compensate_json
@@ -147,17 +151,82 @@ def download_image(self, name: str, image_folder_path: str, url_override: str = 
     """
     filepath = os.path.join(image_folder_path, get_image_file_name(name))
     if url_override == '':
-        image_url = f'{WIKI_IMAGE_URL}{name.replace(' ', '_')}_icon.png'
+        image_url = f'{WIKI_IMAGE_URL}{name.replace(" ", "_")}_icon.png'
     else:
         image_url = url_override
-    image_response = requests.get(image_url)
+
+    response = requests.get(image_url)
     image = QImage()
-    if image_response.ok:
-        image.loadFromData(image_response.content, 'png')
+    if response.status_code == 200:
+        image.loadFromData(response.content, 'png')
         image.save(filepath)
     else:
         self.cache.images_failed[name] = int(datetime.now().timestamp())
     return image
+
+
+def download_image_optimized(self, session: requests.Session, name: str, image_folder_path: str, url_override: str = ''):
+    """
+    Optimized version of download_image that uses a session for connection pooling.
+    
+    Parameters:
+    - :param session: requests.Session for connection reuse
+    - :param name: name of the item
+    - :param image_folder_path: path to the image folder
+    - :param url_override: non default image url (optional)
+    """
+    filepath = os.path.join(image_folder_path, get_image_file_name(name))
+    if url_override == '':
+        image_url = f'{WIKI_IMAGE_URL}{name.replace(" ", "_")}_icon.png'
+    else:
+        image_url = url_override
+
+    try:
+        response = session.get(image_url, timeout=10)
+        if response.status_code == 200:
+            image = QImage()
+            image.loadFromData(response.content, 'png')
+            image.save(filepath)
+            return True
+        else:
+            self.cache.images_failed[name] = int(datetime.now().timestamp())
+            return False
+    except Exception as e:
+        print(f"Error downloading {name}: {e}")
+        self.cache.images_failed[name] = int(datetime.now().timestamp())
+        return False
+
+
+def download_images_parallel(self, image_list: list, image_folder_path: str, max_workers: int = 10):
+    """
+    Downloads multiple images in parallel using connection pooling.
+    
+    Parameters:
+    - :param image_list: list of (name, url_override) tuples
+    - :param image_folder_path: path to the image folder
+    - :param max_workers: maximum number of concurrent downloads
+    """
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'SETS/1.0 (Star Trek Online Build Tool)'
+    })
+    
+    def download_single(item):
+        name, url_override = item
+        return download_image_optimized(self, session, name, image_folder_path, url_override)
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(download_single, item): item for item in image_list}
+        
+        for future in as_completed(futures):
+            item = futures[future]
+            try:
+                success = future.result()
+                if success:
+                    print(f"Downloaded: {item[0]}")
+            except Exception as e:
+                print(f"Error downloading {item[0]}: {e}")
+                self.cache.images_failed[item[0]] = int(datetime.now().timestamp())
 
 
 def get_ship_image(self, image_name: str, threaded_worker):

@@ -4,6 +4,7 @@ from .buildupdater import (
         align_space_frame, clear_captain, clear_doffs, clear_ground_build, clear_ship, clear_traits,
         get_variable_slot_counts, set_skill_unlock_ground, set_skill_unlock_space,
         slot_equipment_item, slot_trait_item, update_equipment_cat, update_starship_traits)
+from .build_manager import BuildManager
 from .constants import (
         EQUIPMENT_TYPES, PRIMARY_SPECS, SECONDARY_SPECS, SHIP_TEMPLATE, SKILL_POINTS_FOR_RANK,
         SPECIES, SPECIES_TRAITS)
@@ -44,11 +45,11 @@ def faction_combo_callback(self, new_faction: str):
     """
     Saves new faction to build and changes species selector choices.
     """
-    self.build['captain']['faction'] = new_faction
+    self.build_manager.set_character_data('faction', new_faction)
     self.widgets.character['species'].clear()
     if new_faction != '':
         self.widgets.character['species'].addItems(('', *SPECIES[new_faction]))
-    self.build['captain']['species'] = ''
+    self.build_manager.set_character_data('species', '')
     self.autosave()
 
 
@@ -56,13 +57,13 @@ def species_combo_callback(self, new_species: str):
     """
     Saves new species to build and changes species trait
     """
-    self.build['captain']['species'] = new_species
+    self.build_manager.set_character_data('species', new_species)
     if new_species == 'Alien':
         if not self.building:
-            self.build['space']['traits'][10] = ''
-            self.build['ground']['traits'][10] = ''
-            self.build['space']['traits'][11] = ''
-            self.build['ground']['traits'][11] = ''
+            self.build_manager.set_equipment_item('space', 'traits', 10, '')
+            self.build_manager.set_equipment_item('ground', 'traits', 10, '')
+            self.build_manager.set_equipment_item('space', 'traits', 11, '')
+            self.build_manager.set_equipment_item('ground', 'traits', 11, '')
         self.widgets.build['space']['traits'][10].show()
         self.widgets.build['ground']['traits'][10].show()
         self.widgets.build['space']['traits'][11].clear()
@@ -72,18 +73,18 @@ def species_combo_callback(self, new_species: str):
         self.widgets.build['ground']['traits'][10].hide()
         self.widgets.build['space']['traits'][10].clear()
         self.widgets.build['ground']['traits'][10].clear()
-        self.build['space']['traits'][10] = None
-        self.build['ground']['traits'][10] = None
+        self.build_manager.set_equipment_item('space', 'traits', 10, None)
+        self.build_manager.set_equipment_item('ground', 'traits', 10, None)
         new_space_trait = SPECIES_TRAITS['space'].get(new_species, '')
         new_ground_trait = SPECIES_TRAITS['ground'].get(new_species, '')
         if new_space_trait == '':
             self.widgets.build['space']['traits'][11].clear()
-            self.build['space']['traits'][11] = ''
+            self.build_manager.set_equipment_item('space', 'traits', 11, '')
         else:
             slot_trait_item(self, {'item': new_space_trait}, 'space', 'traits', 11)
         if new_ground_trait == '':
             self.widgets.build['ground']['traits'][11].clear()
-            self.build['ground']['traits'][11] = ''
+            self.build_manager.set_equipment_item('ground', 'traits', 11, '')
         else:
             slot_trait_item(self, {'item': new_ground_trait}, 'ground', 'traits', 11)
     self.autosave()
@@ -94,7 +95,7 @@ def spec_combo_callback(self, primary: bool, new_spec: str):
     Saves new spec to build and adjusts choices in other spec combo box.
     """
     if primary:
-        self.build['captain']['primary_spec'] = new_spec
+        self.build_manager.set_character_data('primary_spec', new_spec)
         secondary_combo = self.widgets.character['secondary']
         secondary_specs = set()
         remove_index = None
@@ -106,7 +107,7 @@ def spec_combo_callback(self, primary: bool, new_spec: str):
             secondary_combo.removeItem(remove_index)
         secondary_combo.addItems((PRIMARY_SPECS | SECONDARY_SPECS) - secondary_specs)
     else:
-        self.build['captain']['secondary_spec'] = new_spec
+        self.build_manager.set_character_data('secondary_spec', new_spec)
         primary_combo = self.widgets.character['primary']
         primary_specs = set()
         remove_index = None
@@ -130,7 +131,13 @@ def set_build_item(self, dictionary, key, value, autosave: bool = True):
     - :param value: value to be assigned to the item
     - :param autosave: set to False to disable autosave
     """
-    dictionary[key] = value
+    # Use BuildManager for captain data
+    if dictionary is self.build['captain']:
+        self.build_manager.set_character_data(key, value)
+    else:
+        # Fallback to direct assignment for other cases
+        dictionary[key] = value
+    
     if autosave:
         self.autosave()
 
@@ -144,22 +151,22 @@ def elite_callback(self, state):
     """
     if state == Qt.CheckState.Checked:
         if not self.building:
-            self.build['captain']['elite'] = True
-            self.build['space']['traits'][9] = ''
-            self.build['ground']['traits'][9] = ''
-            self.build['ground']['kit_modules'][5] = ''
-            self.build['ground']['ground_devices'][4] = ''
+            self.build_manager.set_character_data('elite', True)
+            self.build_manager.set_equipment_item('space', 'traits', 9, '')
+            self.build_manager.set_equipment_item('ground', 'traits', 9, '')
+            self.build_manager.set_equipment_item('ground', 'kit_modules', 5, '')
+            self.build_manager.set_equipment_item('ground', 'ground_devices', 4, '')
         self.widgets.build['space']['traits'][9].show()
         self.widgets.build['ground']['traits'][9].show()
         self.widgets.build['ground']['kit_modules'][5].show()
         self.widgets.build['ground']['ground_devices'][4].show()
     else:
         if not self.building:
-            self.build['captain']['elite'] = False
-            self.build['space']['traits'][9] = None
-            self.build['ground']['traits'][9] = None
-            self.build['ground']['kit_modules'][5] = None
-            self.build['ground']['ground_devices'][4] = None
+            self.build_manager.set_character_data('elite', False)
+            self.build_manager.set_equipment_item('space', 'traits', 9, None)
+            self.build_manager.set_equipment_item('ground', 'traits', 9, None)
+            self.build_manager.set_equipment_item('ground', 'kit_modules', 5, None)
+            self.build_manager.set_equipment_item('ground', 'ground_devices', 4, None)
         self.widgets.build['space']['traits'][9].hide()
         self.widgets.build['space']['traits'][9].clear()
         self.widgets.build['ground']['traits'][9].hide()

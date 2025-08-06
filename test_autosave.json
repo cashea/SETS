@@ -1,0 +1,263 @@
+{
+  "space": {
+    "ship": "",
+    "ship_name": "",
+    "ship_desc": "",
+    "tier": "",
+    "fore_weapons": [
+      {
+        "item": "Test Weapon 2"
+      },
+      null,
+      null,
+      null,
+      null
+    ],
+    "aft_weapons": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "experimental": [
+      null
+    ],
+    "devices": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "hangars": [
+      null,
+      null
+    ],
+    "deflector": [
+      ""
+    ],
+    "sec_def": [
+      null
+    ],
+    "engines": [
+      ""
+    ],
+    "core": [
+      ""
+    ],
+    "shield": [
+      ""
+    ],
+    "uni_consoles": [
+      null,
+      null,
+      null
+    ],
+    "eng_consoles": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "sci_consoles": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "tac_consoles": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "boffs": [
+      [
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null
+      ],
+      [
+        null,
+        null,
+        null,
+        null
+      ]
+    ],
+    "traits": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "starship_traits": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "rep_traits": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "active_rep_traits": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "doffs_spec": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "doffs_variant": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  },
+  "ground": {
+    "ground_desc": "",
+    "weapons": [
+      null,
+      null,
+      null,
+      null
+    ],
+    "ground_devices": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "kit": [
+      ""
+    ],
+    "armor": [
+      ""
+    ],
+    "kit_modules": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "personal_shield": [
+      ""
+    ],
+    "ev_suit": [
+      ""
+    ],
+    "experimental": [
+      null
+    ],
+    "traits": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "rep_traits": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "active_rep_traits": [
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    "doffs_spec": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ],
+    "doffs_variant": [
+      "",
+      "",
+      "",
+      "",
+      "",
+      ""
+    ]
+  },
+  "captain": {
+    "name": "Test Captain 2",
+    "career": "",
+    "faction": "",
+    "species": "",
+    "primary_spec": "",
+    "secondary_spec": "",
+    "elite": false
+  }
+}

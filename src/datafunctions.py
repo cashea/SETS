@@ -5,17 +5,26 @@ import sys
 from zlib import compress as zlib_compress, decompress as zlib_decompress
 from numpy import array, append, fromiter, packbits, uint8, unpackbits, zeros
 from PySide6.QtGui import QImage
+import requests
 from requests.exceptions import (
         ConnectionError as requests__ConnectionError, Timeout as requests__Timeout)
 from requests_html import Element
+import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
 
 from .buildupdater import get_boff_spec, load_build, load_skill_pages
+from .build_manager import BuildManager
 from .constants import (
         BOFF_URL, BUILD_CONVERSION, CAREERS, DOFF_QUERY_URL,
         EQUIPMENT_TYPES, ITEM_QUERY_URL, MODIFIER_QUERY, PRIMARY_SPECS, SHIP_QUERY_URL,
         STARSHIP_TRAIT_QUERY_URL, TRAIT_QUERY_URL, WIKI_IMAGE_URL)
 from .iofunc import (
-        browse_path, copy_file, download_image, fetch_html, get_asset_path, get_cached_cargo_data,
+        browse_path, copy_file, download_image, download_image_optimized, fetch_html, get_asset_path, get_cached_cargo_data,
         get_cargo_data, get_downloaded_images, image, load_image, load_json, retrieve_image,
         store_json, store_to_cache)
 from .splash import enter_splash, exit_splash, splash_text
@@ -29,20 +38,23 @@ def init_backend(self):
     """
     Loads cargo and build data.
     """
+    logging.debug('Starting init_backend')
     def finish_backend_init():
+        logging.debug('Starting finish_backend_init')
         splash_text(self, 'Injecting Cargo Data')
         insert_cargo_data(self)
         slot_skill_images(self)
         splash_text(self, 'Loading Build')
         load_build(self)
-        exec_in_thread(self, load_images, self)
         exit_splash(self)
+        logging.debug('Completed finish_backend_init')
 
     enter_splash(self)
     load_build_file(self, self.config['autosave_filename'], update_ui=False)
     exec_in_thread(
             self, populate_cache, self, finished=finish_backend_init,
             update_splash=lambda new_text: splash_text(self, new_text))
+    logging.debug('Completed init_backend')
 
 
 def insert_cargo_data(self):
@@ -77,15 +89,18 @@ def populate_cache(self, threaded_worker: ThreadObject):
     Parameters:
     - :param threaded_worker: worker object supplying signals
     """
+    logging.debug('Starting populate_cache')
     success = load_cargo_cache(self, threaded_worker)
     if not success:
         self.cache.reset_cache(keep_skills=True)
         load_cargo_data(self, threaded_worker)
     self.cache.empty_image = QImage()
     self.cache.images_failed = get_cached_cargo_data(self, 'images_failed.json')
+    # Call download_images directly since it's now synchronous
     download_images(self, threaded_worker)
     store_to_cache(self, self.cache.images_failed, 'images_failed.json')
     load_base_images(self, threaded_worker)
+    logging.debug('Completed populate_cache')
 
 
 def load_cargo_cache(self, threaded_worker: ThreadObject) -> bool:
@@ -294,12 +309,12 @@ def load_base_images(self, threaded_worker: ThreadObject):
             for skill_node in skill_group['nodes']:
                 self.cache.images[skill_node['image']] = retrieve_image(
                     self, skill_node['image'], img_folder, threaded_worker.update_splash,
-                    f'{WIKI_IMAGE_URL}{skill_node['image']}.png')
+                    f'{WIKI_IMAGE_URL}{skill_node["image"]}.png')
     for skill_group in self.cache.skills['ground']:
         for skill_node in skill_group['nodes']:
             self.cache.images[skill_node['image']] = retrieve_image(
                     self, skill_node['image'], img_folder, threaded_worker.update_splash,
-                    f'{WIKI_IMAGE_URL}{skill_node['image']}.png')
+                    f'{WIKI_IMAGE_URL}{skill_node["image"]}.png')
     self.cache.images['arrow-up'] = QImage(get_asset_path('arrow-up.png', self.app_dir))
     self.cache.images['arrow-down'] = QImage(get_asset_path('arrow-down.png', self.app_dir))
     self.cache.images['Focused Frenzy'] = retrieve_image(
@@ -316,10 +331,12 @@ def load_images(self, threaded_worker=None):
     Parameters:
     - :param threaded_worker: (unused; required for compatability with employed threading method)
     """
+    logging.debug('Starting load_images')
     img_folder = self.config['config_subfolders']['images']
     for img_name, img in self.cache.images.items():
         if img.isNull():
             load_image(img_name, img, img_folder)
+    logging.debug('Completed load_images')
 
 
 def download_images(self, threaded_worker: ThreadObject):
@@ -337,16 +354,47 @@ def download_images(self, threaded_worker: ThreadObject):
     images = self.cache.images_set - no_retry_images - get_downloaded_images(self)
     img_folder = self.config['config_subfolders']['images']
 
+    # Emit initial progress
+    threaded_worker.update_splash.emit('Downloading: Images')
+    
+    # Prepare image list for parallel download
+    image_list = []
+    
+    # Regular images
     images_to_download = images - self.cache.boff_abilities['all'].keys()
     for image_name in images_to_download:
-        threaded_worker.update_splash.emit(f'Downloading Image: {image_name}')
-        download_image(self, image_name, img_folder)
-
+        image_list.append((image_name, ''))
+    
+    # Boff images with special URL
     boff_images_to_download = images & self.cache.boff_abilities['all'].keys()
     for image_name in boff_images_to_download:
-        threaded_worker.update_splash.emit(f'Downloading Image: {image_name}')
-        image_url = f'{WIKI_IMAGE_URL}{image_name.replace(' ', '_')}_icon_(Federation).png'
-        download_image(self, image_name, img_folder, image_url)
+        image_list.append((image_name, f'{WIKI_IMAGE_URL}{image_name.replace(" ", "_")}_icon_(Federation).png'))
+    
+    total_images = len(image_list)
+    downloaded = 0
+    
+    # Use parallel download with progress reporting
+    session = requests.Session()
+    session.headers.update({
+        'User-Agent': 'SETS/1.0 (Star Trek Online Build Tool)'
+    })
+    
+    # Use ThreadPoolExecutor for parallel downloads
+    with ThreadPoolExecutor(max_workers=10) as executor:
+        futures = {executor.submit(download_image_optimized, self, session, item[0], img_folder, item[1]): item for item in image_list}
+        
+        completed = 0
+        for future in as_completed(futures):
+            item = futures[future]
+            completed += 1
+            try:
+                future.result()
+                if completed % 5 == 0:  # Update progress every 5 images
+                    threaded_worker.update_splash.emit(f'Downloading: Images ({completed}/{total_images})')
+            except Exception as e:
+                print(f"Error downloading {item[0]}: {e}")
+                self.cache.images_failed[item[0]] = int(datetime.now().timestamp())
+
     return no_retry_images
 
 
@@ -382,7 +430,7 @@ def autosave(self):
     Saves build to autosave file.
     """
     if not self.building:
-        store_json(self.build, self.config['autosave_filename'])
+        self.build_manager.save_build_to_file(self.config['autosave_filename'])
 
 
 def map_build_items(self, old_build: dict, new_build: dict, mapping):
@@ -708,15 +756,22 @@ def load_build_file(self, filepath: str, update_ui: bool = True):
         build_data = json__loads(decoded_str)
     else:
         return
-    new_build = empty_build(self)
-    if len(build_data.keys() | new_build.keys()) == 7:
-        merge_build(self, new_build, build_data)
-    elif 'versionJSON' in build_data:
-        build_data = json__loads(compensate_old_build(self, json__dumps(build_data)))
-        new_build.update(convert_old_build(self, build_data))
-    else:
-        return
-    self.build = new_build
+    
+    # Use BuildManager to load the build
+    success = self.build_manager.load_build_from_file(filepath)
+    if not success:
+        # Fallback to old method for compatibility
+        new_build = empty_build(self)
+        if len(build_data.keys() | new_build.keys()) == 7:
+            merge_build(self, new_build, build_data)
+        elif 'versionJSON' in build_data:
+            build_data = json__loads(compensate_old_build(self, json__dumps(build_data)))
+            new_build.update(convert_old_build(self, build_data))
+        else:
+            return
+        # Update BuildManager with the loaded build
+        self.build_manager._build = new_build
+    
     if update_ui:
         try:
             load_build(self)
@@ -734,7 +789,7 @@ def save_build_file(self, filepath: str):
     """
     _, _, extension = filepath.rpartition('.')
     if extension.lower() == 'json':
-        store_json(self.build, filepath)
+        self.build_manager.save_build_to_file(filepath)
     elif extension.lower() == 'png':
         image = self.window.grab().toImage()
         encode_in_image(self, image, json__dumps(self.build))

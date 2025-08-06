@@ -1,0 +1,6 @@
+rules:
+  - name: Force command completion detection
+    appliesTo: terminal
+    alwaysApply: true
+    code: |
+      %{command_text%} 2>&1 | cat

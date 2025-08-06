@@ -34,7 +34,7 @@ def add_equipment_tooltip_header(self, item: dict, tooltip_body: str, item_type:
     - :param tooltip_body: already created tooltip body
     - :param item_type: type of the item to add to the subtitle
     """
-    rarity_color = f'color:{RARITY_COLORS[item['rarity']]};'
+    rarity_color = f'color:{RARITY_COLORS[item["rarity"]]};'
     head_style = self.theme['tooltip']['equipment_name'] + rarity_color
     subhead_style = self.theme['tooltip']['equipment_type_subheader'] + rarity_color
     item_title = item['item']

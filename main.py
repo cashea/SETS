@@ -1,7 +1,11 @@
 import os
 import sys
+import logging
 
 from src import SETS
+
+# Configure logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class Launcher():
@@ -590,6 +594,7 @@ class Launcher():
 
     @staticmethod
     def launch():
+        logging.debug('Starting application launch')
         args = {}
         exit_code = SETS(
                 theme=Launcher.theme, args=args,

@@ -1,4 +1,5 @@
 import os
+import asyncio
 
 from PySide6.QtCore import QSettings, Qt, QThread
 from PySide6.QtGui import QFontDatabase, QTextOption
@@ -14,6 +15,7 @@ from .subwindows import ExportWindow, ItemEditor, Picker, ShipSelector
 from .widgets import (
     Cache, ContextMenu, GridLayout, HBoxLayout, ImageLabel, ShipButton, ShipImage, TooltipLabel,
     VBoxLayout, WidgetStorage)
+from .build_manager import BuildManager
 
 # only for developing; allows to terminate the qt event loop with keyboard interrupt
 from signal import signal, SIGINT, SIG_DFL
@@ -57,10 +59,13 @@ class SETS():
     widgets: WidgetStorage
     # stores refined cargo data
     cache: Cache
-    # stores current build
-    build: dict
     # height of items
     box_height: int
+    
+    @property
+    def build(self) -> dict:
+        """Delegate to build manager"""
+        return self.build_manager.build
     # width of items
     box_width: int
     # for picking items
@@ -92,6 +97,7 @@ class SETS():
         self.config = config
         self.widgets = WidgetStorage()
         self.cache = Cache()
+        self.build_manager = BuildManager(self.cache, self.config)
         self.init_settings()
         self.init_config()
         self.prepare_tooltip_css()
@@ -99,7 +105,6 @@ class SETS():
         self.app, self.window = self.create_main_window()
         self.cache_icons()
         self.building = True
-        self.build = self.empty_build()
         self.export_window = ExportWindow(self, self.window, self.get_build_markdown)
         self.setup_main_layout()
         self.picker_window = Picker(
@@ -110,6 +115,7 @@ class SETS():
         self.ship_selector_window = ShipSelector(self, self.window)
         self.context_menu = self.create_context_menu()
         self.window.show()
+        # Call init_backend directly since it's now synchronous
         self.init_backend()
 
     def run(self) -> int:
@@ -163,22 +169,25 @@ class SETS():
         """
         Loads static icons.
         """
-        self.cache.icons['copy'] = load_icon('copy.png', self.app_dir)
-        self.cache.icons['paste'] = load_icon('paste.png', self.app_dir)
-        self.cache.icons['clear'] = load_icon('clear.png', self.app_dir)
-        self.cache.icons['edit'] = load_icon('edit.png', self.app_dir)
-        self.cache.icons['link'] = load_icon('external_link.png', self.app_dir)
-        self.cache.icons['dual_cannons'] = load_icon('DC_icon.svg', self.app_dir).pixmap(16, 24.5)
-        self.cache.icons['ground'] = load_icon('ground_icon.png', self.app_dir).pixmap(
-                self.box_width * 1.2, self.box_width * 1.2)
-        self.cache.icons['tac'] = load_icon('tac_icon.png', self.app_dir).pixmap(
-                self.box_width, self.box_width)
-        self.cache.icons['sci'] = load_icon('sci_icon.png', self.app_dir).pixmap(
-                self.box_width, self.box_width)
-        self.cache.icons['eng'] = load_icon('eng_icon.png', self.app_dir).pixmap(
-                self.box_width, self.box_width)
-        self.cache.icons['STOCD'] = load_icon('stocd.png', self.app_dir).pixmap(
-                self.box_height, self.box_height * 182 / 106)
+        icons = [
+            ('copy', 'copy.png'),
+            ('paste', 'paste.png'),
+            ('clear', 'clear.png'),
+            ('edit', 'edit.png'),
+            ('link', 'external_link.png'),
+            ('dual_cannons', 'DC_icon.svg', 16, 24.5),
+            ('ground', 'ground_icon.png', self.box_width * 1.2, self.box_width * 1.2),
+            ('tac', 'tac_icon.png', self.box_width, self.box_width),
+            ('sci', 'sci_icon.png', self.box_width, self.box_width),
+            ('eng', 'eng_icon.png', self.box_width, self.box_width),
+            ('STOCD', 'stocd.png', self.box_height, self.box_height * 182 / 106)
+        ]
+
+        for icon_name, file_name, *pixmap_size in icons:
+            icon = load_icon(file_name, self.app_dir)
+            if pixmap_size:
+                icon = icon.pixmap(*pixmap_size)
+            self.cache.icons[icon_name] = icon
 
     def main_window_close_callback(self, event):
         """

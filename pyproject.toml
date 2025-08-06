@@ -1,13 +1,10 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[project]
+[tool.poetry]
 name = "SETS"
+version = "0.1.0"
 description = "A Star Trek Online build tool in Python"
+authors = ["Your Name <your.email@example.com>"]
 readme = "README.md"
-requires-python = ">=3.11"
-license = {file = "LICENSE"}
+license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -15,28 +12,26 @@ classifiers = [
     "Topic :: Games/Entertainment",
     "Development Status :: 4 - Beta"
 ]
-dependencies = [
-  "PySide6",
-  "requests",
-  "numpy",
-  "requests_html",
-  "lxml_html_clean"
-]
-dynamic = ["version"]
+packages = [{include = "src"}]
+include = ["local", "LICENSE", "README.md"]
 
-[project.urls]
-homepage = "https://stobuilds.com/apps/sets"
-repository = "https://github.com/STOCD/SETS"
+[tool.poetry.dependencies]
+python = ">=3.9,<3.14"
+PySide6 = "*"
+requests = "*"
+numpy = "*"
+requests_html = "*"
+lxml_html_clean = "*"
+aiohttp = "*"
 
-[tool.hatch.build.targets.wheel]
-packages = ["."]
+[tool.poetry.group.dev.dependencies]
 
-[project.scripts]
+[tool.poetry.scripts]
 sets = "main:Launcher.launch"
 
-[tool.hatch.version]
-path = "main.py"
-pattern = "\\s*version = '(?P<version>.*)'"
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
 
 [tool.cxfreeze]
 executables = [
