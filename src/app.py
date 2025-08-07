@@ -31,7 +31,8 @@ class SETS():
             refresh_ship_stats, select_ship, set_build_item, set_ui_scale_setting, ship_info_callback,
             skill_unlock_callback, spec_combo_callback, species_combo_callback, switch_main_tab,
             tier_callback, calculate_equipment_bonuses, calculate_trait_bonuses, calculate_skill_bonuses,
-            _parse_equipment_bonuses, _parse_trait_bonuses, _parse_stat_text, _update_stats_info_text)
+            _parse_equipment_bonuses, _parse_trait_bonuses, _parse_stat_text, _update_stats_info_text,
+            _format_stat_value, calculate_equipment_bonuses_by_category)
     from .datafunctions import (
             autosave, backup_cargo_data, cache_skills, empty_build,
             init_backend, load_legacy_build_image)
@@ -1014,6 +1015,18 @@ class SETS():
         
         sidebar_frame.setLayout(sidebar_layout)
         main_layout.addWidget(sidebar_frame, 0, 2)
+        
+        # Add heatmap to the right side
+        heatmap_frame = self.create_frame(size_policy=SMINMIN)
+        heatmap_layout = VBoxLayout(margins=csp, spacing=csp)
+        
+        # Import and create heatmap widget
+        from .widgets import EquipmentBonusHeatmap
+        self.widgets.equipment_heatmap = EquipmentBonusHeatmap()
+        heatmap_layout.addWidget(self.widgets.equipment_heatmap)
+        
+        heatmap_frame.setLayout(heatmap_layout)
+        main_layout.addWidget(heatmap_frame, 0, 3)
         
         frame.setLayout(main_layout)
 

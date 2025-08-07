@@ -1,10 +1,14 @@
+import os
+import json
+from typing import Dict, List, Any, Optional, Tuple
 from collections import namedtuple
 
 from PySide6.QtCore import QEvent, QObject, QPoint, QRect, QSize, Qt, QThread, Signal, Slot
-from PySide6.QtGui import QBrush, QColor, QCursor, QEnterEvent, QImage, QMouseEvent, QPainter, QPen
+from PySide6.QtGui import QBrush, QColor, QCursor, QEnterEvent, QImage, QMouseEvent, QPainter, QPen, QPixmap, QFont, QFontMetrics, QPalette, QLinearGradient, QRadialGradient, QConicalGradient, QPainterPath, QTransform, QIcon
 from PySide6.QtWidgets import (
         QCheckBox, QComboBox, QFrame, QGridLayout, QHBoxLayout, QLabel, QLineEdit, QMenu,
-        QPlainTextEdit, QSizePolicy, QTabWidget, QVBoxLayout, QWidget)
+        QPlainTextEdit, QSizePolicy, QTabWidget, QVBoxLayout, QWidget, QScrollArea, QPushButton, QTextEdit, QSplitter, QGroupBox, QSlider, QSpinBox, QDoubleSpinBox, QListWidget, QListWidgetItem, QTableWidget, QTableWidgetItem, QHeaderView, QApplication, QMainWindow, QFileDialog, QMessageBox, QProgressBar, QToolButton, QSpacerItem, QButtonGroup, QRadioButton, QTextBrowser, QDialog, QDialogButtonBox, QFormLayout, QStackedWidget, QToolBar, QStatusBar, QDockWidget, QGraphicsView, QGraphicsScene, QGraphicsItem, QGraphicsRectItem, QGraphicsTextItem, QGraphicsPixmapItem, QGraphicsEllipseItem, QGraphicsPolygonItem, QGraphicsLineItem, QGraphicsPathItem)
+from PySide6.QtGui import QBrush, QColor, QCursor, QEnterEvent, QImage, QMouseEvent, QPainter, QPen, QPixmap, QFont, QFontMetrics, QPalette, QLinearGradient, QRadialGradient, QConicalGradient, QPainterPath, QTransform, QIcon, QAction
 
 from .constants import AHCENTER, ATOP, EQUIPMENT_TYPES, SMINMIN
 
@@ -644,3 +648,183 @@ class TooltipLabel(QLabel):
     def leaveEvent(self, event: QEvent) -> None:
         self._tooltip.hide()
         event.accept()
+
+
+class HeatmapPaintWidget(QWidget):
+    """
+    Custom widget for painting the heatmap.
+    """
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.bonus_data = {}
+        self.stat_categories = [
+            'hull', 'shields', 'turn_rate', 'impulse', 'inertia',
+            'power_weapons', 'power_shields', 'power_engines', 'power_auxiliary'
+        ]
+        self.equipment_categories = [
+            'fore_weapons', 'aft_weapons', 'devices', 'deflector', 'engines',
+            'core', 'shield', 'tac_consoles', 'eng_consoles', 'sci_consoles', 'uni_consoles'
+        ]
+        
+        # Set widget properties for proper painting
+        self.setAttribute(Qt.WA_OpaquePaintEvent, True)
+        self.setAttribute(Qt.WA_NoSystemBackground, True)
+        
+    def update_data(self, bonus_data):
+        """Update the bonus data and trigger a repaint."""
+        self.bonus_data = bonus_data
+        self.update()
+        
+    def paintEvent(self, event):
+        """Custom paint event to draw the heatmap."""
+        if not self.bonus_data:
+            return
+            
+        painter = QPainter(self)
+        if not painter.isActive():
+            print("Debug: Painter not active, cannot paint heatmap")
+            return
+            
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # Calculate cell dimensions
+        cell_width = self.width() // (len(self.stat_categories) + 1)
+        cell_height = self.height() // (len(self.equipment_categories) + 1)
+        
+        if cell_width <= 0 or cell_height <= 0:
+            print(f"Debug: Invalid cell dimensions: {cell_width}x{cell_height}")
+            return
+        
+        print(f"Debug: Painting heatmap with {len(self.bonus_data)} categories")
+        
+        # Find max bonus value for normalization
+        max_bonus = 0
+        for eq_cat_bonuses in self.bonus_data.values():
+            for stat_bonus in eq_cat_bonuses.values():
+                max_bonus = max(max_bonus, abs(stat_bonus))
+        
+        if max_bonus == 0:
+            max_bonus = 1  # Avoid division by zero
+        
+        # Draw header row (stat categories)
+        painter.setPen(QPen(QColor("#ffffff")))
+        painter.setFont(QFont("Arial", 8))
+        
+        for i, stat in enumerate(self.stat_categories):
+            x = (i + 1) * cell_width
+            y = 0
+            rect = QRect(x, y, cell_width, cell_height)
+            
+            # Draw stat name
+            painter.drawText(rect, Qt.AlignCenter, stat.replace('_', '\n'))
+            
+            # Draw border
+            painter.setPen(QPen(QColor("#555555")))
+            painter.drawRect(rect)
+        
+        # Draw equipment category column
+        for i, eq_cat in enumerate(self.equipment_categories):
+            x = 0
+            y = (i + 1) * cell_height
+            rect = QRect(x, y, cell_width, cell_height)
+            
+            # Draw equipment category name
+            painter.setPen(QPen(QColor("#ffffff")))
+            painter.drawText(rect, Qt.AlignCenter, eq_cat.replace('_', '\n'))
+            
+            # Draw border
+            painter.setPen(QPen(QColor("#555555")))
+            painter.drawRect(rect)
+        
+        # Draw heatmap cells
+        for i, eq_cat in enumerate(self.equipment_categories):
+            for j, stat in enumerate(self.stat_categories):
+                x = (j + 1) * cell_width
+                y = (i + 1) * cell_height
+                rect = QRect(x, y, cell_width, cell_height)
+                
+                # Get bonus value
+                bonus_value = self.bonus_data.get(eq_cat, {}).get(stat, 0)
+                
+                # Calculate color intensity (0-255)
+                intensity = min(255, int((abs(bonus_value) / max_bonus) * 255))
+                
+                # Create color based on bonus value
+                if bonus_value > 0:
+                    color = QColor(intensity, 0, 0)  # Red for positive
+                elif bonus_value < 0:
+                    color = QColor(0, 0, intensity)  # Blue for negative
+                else:
+                    color = QColor(50, 50, 50)  # Dark gray for zero
+                
+                # Fill cell
+                painter.fillRect(rect, QBrush(color))
+                
+                # Draw border
+                painter.setPen(QPen(QColor("#555555")))
+                painter.drawRect(rect)
+                
+                # Draw value text
+                if abs(bonus_value) > 0.1:  # Only show non-zero values
+                    painter.setPen(QPen(QColor("#ffffff")))
+                    painter.drawText(rect, Qt.AlignCenter, f"{bonus_value:.1f}")
+        
+        print("Debug: Heatmap painting completed")
+
+
+class EquipmentBonusHeatmap(QWidget):
+    """
+    A heatmap widget that visualizes equipment bonuses by category.
+    Shows which equipment categories provide the most bonuses.
+    """
+    
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setup_ui()
+        
+    def setup_ui(self):
+        """Setup the heatmap UI."""
+        layout = QVBoxLayout()
+        
+        # Title
+        title = QLabel("Equipment Bonus Heatmap")
+        title.setStyleSheet("font-size: 14px; font-weight: bold; margin: 5px;")
+        layout.addWidget(title)
+        
+        # Description
+        desc = QLabel("Shows bonus contribution by equipment category and stat type")
+        desc.setStyleSheet("color: #888888; margin: 5px;")
+        layout.addWidget(desc)
+        
+        # Heatmap widget
+        self.heatmap_widget = HeatmapPaintWidget()
+        self.heatmap_widget.setMinimumSize(600, 400)
+        self.heatmap_widget.setStyleSheet("background-color: #2b2b2b; border: 1px solid #555555;")
+        layout.addWidget(self.heatmap_widget)
+        
+        # Legend
+        legend_layout = QHBoxLayout()
+        legend_layout.addWidget(QLabel("Legend:"))
+        
+        # Color gradient legend
+        legend_widget = QWidget()
+        legend_widget.setFixedHeight(20)
+        legend_widget.setStyleSheet("background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #000000, stop:1 #ff0000); border: 1px solid #555555;")
+        legend_layout.addWidget(legend_widget)
+        
+        legend_layout.addWidget(QLabel("0%"))
+        legend_layout.addWidget(QLabel("100%"))
+        legend_layout.addStretch()
+        
+        layout.addLayout(legend_layout)
+        
+        self.setLayout(layout)
+        
+    def update_heatmap(self, bonus_data: Dict[str, Dict[str, float]]):
+        """
+        Update the heatmap with new bonus data.
+        
+        Args:
+            bonus_data: Dictionary mapping equipment categories to stat bonuses
+        """
+        self.heatmap_widget.update_data(bonus_data)

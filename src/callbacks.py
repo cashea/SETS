@@ -309,18 +309,18 @@ def boff_label_callback_ground(self, boff_id: int, type_: str, new_text: str):
     """
     if self.building:
         return
-    self.build['ground'][type_][boff_id] = new_text
+    self.build[type_][boff_id] = new_text
     other_type = 'boff_profs' if type_ == 'boff_specs' else 'boff_specs'
-    other_text = self.build['ground'][other_type][boff_id]
-    for ability_num, ability in enumerate(self.build['ground']['boffs'][boff_id]):
+    other_text = self.build[other_type][boff_id]
+    for ability_num, ability in enumerate(self.build['boffs'][boff_id]):
         if ability is not None and ability != '':
             # Lt. Commander and Commander rank combined contain all abilities
             if (ability['item'] not in self.cache.boff_abilities['ground'][new_text][2]
                     and ability['item'] not in self.cache.boff_abilities['ground'][new_text][3]
                     and ability['item'] not in self.cache.boff_abilities['ground'][other_text][2]
                     and ability['item'] not in self.cache.boff_abilities['ground'][other_text][3]):
-                self.build['ground']['boffs'][boff_id][ability_num] = ''
-                self.widgets.build['ground']['boffs'][boff_id][ability_num].clear()
+                self.build['boffs'][boff_id][ability_num] = ''
+                self.widgets.build['boffs'][boff_id][ability_num].clear()
     self.autosave()
 
 
@@ -893,7 +893,9 @@ def refresh_ship_stats(self):
             print(f"Debug: Looking for widget key '{widget_key}' for stat '{stat_name}'")
             if widget_key in self.widgets.ship_stats:
                 if isinstance(value, float):
-                    self.widgets.ship_stats[widget_key].setText(f"{value:.1f}")
+                    # Use appropriate precision based on stat type
+                    formatted_value = self._format_stat_value(stat_name, value)
+                    self.widgets.ship_stats[widget_key].setText(formatted_value)
                 else:
                     self.widgets.ship_stats[widget_key].setText(str(value))
             else:
@@ -930,7 +932,9 @@ def refresh_ship_stats(self):
             calc_widget_key = f"calc_total_total_{stat_name}"
             if calc_widget_key in self.widgets.ship_stats:
                 if isinstance(total_value, float):
-                    self.widgets.ship_stats[calc_widget_key].setText(f"{total_value:.1f}")
+                    # Use appropriate precision based on stat type
+                    formatted_value = self._format_stat_value(stat_name, total_value)
+                    self.widgets.ship_stats[calc_widget_key].setText(formatted_value)
                 else:
                     self.widgets.ship_stats[calc_widget_key].setText(str(total_value))
             else:
@@ -940,6 +944,12 @@ def refresh_ship_stats(self):
         
         # Update stats information text with detailed breakdown
         self._update_stats_info_text(equipment_bonuses, trait_bonuses, skill_bonuses, total_bonuses)
+        
+        # Update equipment bonus heatmap
+        if hasattr(self.widgets, 'equipment_heatmap'):
+            category_bonuses = self.calculate_equipment_bonuses_by_category()
+            self.widgets.equipment_heatmap.update_heatmap(category_bonuses)
+            print(f"Debug: Updated heatmap with category bonuses: {category_bonuses}")
         
     except Exception as e:
         print(f"Error refreshing ship stats: {e}")
@@ -1085,6 +1095,55 @@ def calculate_equipment_bonuses(self):
         print(f"Error calculating equipment bonuses: {e}")
         return bonuses
 
+def calculate_equipment_bonuses_by_category(self):
+    """
+    Calculate equipment bonuses organized by equipment category.
+    Returns a dictionary mapping equipment categories to their stat bonuses.
+    """
+    category_bonuses = {}
+    
+    try:
+        equipment_categories = [
+            'fore_weapons', 'aft_weapons', 'devices', 'deflector', 'engines', 
+            'core', 'shield', 'tac_consoles', 'eng_consoles', 'sci_consoles', 'uni_consoles'
+        ]
+        
+        # Initialize category bonuses
+        for category in equipment_categories:
+            category_bonuses[category] = {}
+        
+        for category in equipment_categories:
+            if category in self.build['space']:
+                category_total = {}
+                for item_data in self.build['space'][category]:
+                    if item_data and isinstance(item_data, dict) and 'item' in item_data:
+                        item_name = item_data['item']
+                        
+                        # Find item bonuses
+                        item_bonuses = {}
+                        if item_name in self.cache.equipment.get(category, {}):
+                            item_info = self.cache.equipment[category][item_name]
+                            item_bonuses = self._parse_equipment_bonuses(item_info)
+                        else:
+                            # Search all categories
+                            for eq_category, eq_items in self.cache.equipment.items():
+                                if item_name in eq_items:
+                                    item_info = eq_items[item_name]
+                                    item_bonuses = self._parse_equipment_bonuses(item_info)
+                                    break
+                        
+                        # Add item bonuses to category total
+                        for stat, bonus in item_bonuses.items():
+                            category_total[stat] = category_total.get(stat, 0) + bonus
+                
+                category_bonuses[category] = category_total
+        
+        return category_bonuses
+        
+    except Exception as e:
+        print(f"Error calculating equipment bonuses by category: {e}")
+        return category_bonuses
+
 def _parse_equipment_bonuses(self, item_info):
     """
     Parse equipment tooltip to extract stat bonuses.
@@ -1096,6 +1155,18 @@ def _parse_equipment_bonuses(self, item_info):
         if 'raw_data' in item_info:
             raw_data = item_info['raw_data']
             print(f"Debug: Parsing raw data for {item_info.get('name', 'unknown')}")
+            
+            # Debug: Show the structure of raw_data for items without bonuses
+            if not bonuses:  # If we don't find bonuses, show the raw data structure
+                print(f"Debug: Raw data keys for {item_info.get('name', 'unknown')}: {list(raw_data.keys())}")
+                # Show first few head/text fields
+                for i in range(1, 6):
+                    head_key = f'head{i}'
+                    text_key = f'text{i}'
+                    if head_key in raw_data and raw_data[head_key]:
+                        print(f"Debug: {head_key}: {raw_data[head_key]}")
+                    if text_key in raw_data and raw_data[text_key]:
+                        print(f"Debug: {text_key}: {raw_data[text_key][:100]}...")
             
             # Extract bonuses from head and text fields
             for i in range(1, 10):
@@ -1133,6 +1204,24 @@ def _parse_stat_text(self, head_text, text_content):
         'power_shields': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?shield\s+power',
         'power_engines': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?engine\s+power',
         'power_auxiliary': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?auxiliary\s+power'
+    }
+    
+    # Enhanced patterns for console-specific bonuses
+    console_patterns = {
+        'turn_rate': [
+            r'rcs\s+accelerator.*?turn\s+rate',
+            r'rcs.*?(\+?\d+(?:\.\d+)?)\s*turn\s+rate',
+            r'(\+?\d+(?:\.\d+)?)\s*turn\s+rate.*?rcs',
+            r'(\+?\d+(?:\.\d+)?)\s*percent\s*turn\s+rate',
+            r'(\+?\d+(?:\.\d+)?)\s*turn\s+rate',
+            r'rcs.*?(\+?\d+(?:\.\d+)?)\s*percent',
+            r'(\+?\d+(?:\.\d+)?)\s*percent.*?turn'
+        ],
+        'impulse': [
+            r'(\+?\d+(?:\.\d+)?)\s*impulse',
+            r'(\+?\d+(?:\.\d+)?)\s*percent\s*impulse',
+            r'impulse.*?(\+?\d+(?:\.\d+)?)\s*percent'
+        ]
     }
     
     # Trait-specific patterns for common traits
@@ -1194,6 +1283,20 @@ def _parse_stat_text(self, head_text, text_content):
                 print(f"Debug: Found {stat_name}: {value}")
             except (ValueError, IndexError):
                 pass
+    
+    # Then try console-specific patterns
+    for stat_name, patterns in console_patterns.items():
+        for pattern in patterns:
+            matches = re.findall(pattern, full_text)
+            if matches:
+                try:
+                    # Take the first match and convert to float
+                    value = float(matches[0])
+                    if stat_name not in bonuses:  # Only if no exact value found
+                        bonuses[stat_name] = value
+                        print(f"Debug: Found console {stat_name}: {value}")
+                except (ValueError, IndexError):
+                    pass
     
     # Then try trait-specific patterns for qualitative bonuses
     for stat_name, patterns in trait_patterns.items():
@@ -1427,3 +1530,37 @@ def _update_stats_info_text(self, equipment_bonuses, trait_bonuses, skill_bonuse
         
     except Exception as e:
         print(f"Error updating stats info text: {e}")
+
+
+def _format_stat_value(self, stat_name, value):
+    """
+    Format stat values with appropriate precision based on stat type.
+    """
+    if not isinstance(value, float):
+        return str(value)
+    
+    # Determine precision based on stat type and value
+    if stat_name in ['hull', 'shields']:
+        # Hull and shields are typically large numbers, show 0-1 decimal places
+        if value >= 1000:
+            return f"{value:.0f}"
+        else:
+            return f"{value:.1f}"
+    elif stat_name in ['turn_rate', 'impulse', 'inertia']:
+        # Movement stats can have small decimal values, show 1-2 decimal places
+        if abs(value) < 0.1:
+            return f"{value:.2f}"
+        else:
+            return f"{value:.1f}"
+    elif stat_name.startswith('power_'):
+        # Power levels are typically whole numbers or simple decimals
+        if value == int(value):
+            return f"{value:.0f}"
+        else:
+            return f"{value:.1f}"
+    elif stat_name in ['fore_weapons', 'aft_weapons', 'devices', 'hangars']:
+        # Equipment slots are always whole numbers
+        return f"{value:.0f}"
+    else:
+        # Default to 1 decimal place for unknown stats
+        return f"{value:.1f}"
