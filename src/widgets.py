@@ -202,6 +202,19 @@ class Cache():
         self.images_set: set = set()
         self.images_populated: bool = False
         self.images_failed: dict = dict()
+        
+        # Placeholder resolution cache - stores resolved values to avoid repeated scraping
+        self.placeholder_cache: dict = {
+            'resolved_values': {},  # item_name -> resolved_value
+            'scraping_attempts': {},  # item_name -> timestamp of last attempt
+            'failed_items': set(),  # items that failed to resolve
+            'cache_stats': {
+                'hits': 0,
+                'misses': 0,
+                'scrapes': 0,
+                'failures': 0
+            }
+        }
 
     def boff_dict(self):
         return {

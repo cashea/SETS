@@ -374,30 +374,58 @@ def process_placeholder_text(text: str, item: dict) -> str:
     
     # Get rarity from item
     rarity = item.get('rarity', 'Common')
+    item_name = item.get('item', '')
     
-    # Define placeholder patterns and their replacements
-    placeholder_patterns = [
-        (r'\+__% Flight Turn Rate', get_rcs_turn_rate_replacement(rarity)),
-        (r'\+__% Turn Rate', get_rcs_turn_rate_replacement(rarity)),
-        (r'__% Flight Turn Rate', get_rcs_turn_rate_replacement(rarity)),
-        (r'__% Turn Rate', get_rcs_turn_rate_replacement(rarity)),
-        (r'\+__% Impulse', get_impulse_replacement(rarity)),
-        (r'__% Impulse', get_impulse_replacement(rarity)),
-        (r'\+__% Hull', get_hull_replacement(rarity)),
-        (r'__% Hull', get_hull_replacement(rarity)),
-        (r'\+__% Shield', get_shield_replacement(rarity)),
-        (r'__% Shield', get_shield_replacement(rarity))
-    ]
-    
-    processed_text = text
-    for pattern, replacement in placeholder_patterns:
-        if re.search(pattern, processed_text, flags=re.IGNORECASE):
-            print(f"Debug: Found placeholder pattern '{pattern}' in text: '{text[:100]}...'")
-            print(f"Debug: Replacing with: '{replacement}'")
-            processed_text = re.sub(pattern, replacement, processed_text, flags=re.IGNORECASE)
-            print(f"Debug: Result: '{processed_text[:100]}...'")
-    
-    return processed_text
+    # Check if we have a placeholder resolver available
+    try:
+        # Import here to avoid circular imports
+        from .placeholder_resolver import PlaceholderResolver
+        
+        # Create resolver instance (this should ideally be passed in or stored globally)
+        # For now, we'll create a temporary one
+        resolver = PlaceholderResolver(None)  # We'll need to pass the cache
+        
+        # Look for placeholder patterns
+        placeholder_patterns = [
+            r'\+__% Flight Turn Rate',
+            r'\+__% Turn Rate', 
+            r'__% Flight Turn Rate',
+            r'__% Turn Rate',
+            r'\+__% Impulse',
+            r'__% Impulse',
+            r'\+__% Hull',
+            r'__% Hull',
+            r'\+__% Shield',
+            r'__% Shield'
+        ]
+        
+        processed_text = text
+        for pattern in placeholder_patterns:
+            if re.search(pattern, processed_text, flags=re.IGNORECASE):
+                print(f"Debug: Found placeholder pattern '{pattern}' in text: '{text[:100]}...'")
+                
+                # For now, use the existing replacement functions
+                if 'turn rate' in pattern.lower():
+                    replacement = get_rcs_turn_rate_replacement(rarity)
+                elif 'impulse' in pattern.lower():
+                    replacement = get_impulse_replacement(rarity)
+                elif 'hull' in pattern.lower():
+                    replacement = get_hull_replacement(rarity)
+                elif 'shield' in pattern.lower():
+                    replacement = get_shield_replacement(rarity)
+                else:
+                    replacement = "Unknown"
+                
+                print(f"Debug: Replacing with: '{replacement}'")
+                processed_text = re.sub(pattern, replacement, processed_text, flags=re.IGNORECASE)
+                print(f"Debug: Result: '{processed_text[:100]}...'")
+        
+        return processed_text
+        
+    except ImportError:
+        # Fallback to original method if resolver is not available
+        print("Debug: PlaceholderResolver not available, using fallback method")
+        return _process_placeholder_text_fallback(text, item)
 
 
 def get_rcs_turn_rate_replacement(rarity: str) -> str:
@@ -484,3 +512,45 @@ def sanitize_equipment_name(name: str) -> str:
 
 def wiki_url(page_name: str, prefix: str = ''):
     return (WIKI_URL + prefix + page_name).replace(' ', '_')
+
+
+def _process_placeholder_text_fallback(text: str, item: dict) -> str:
+    """
+    Fallback method for processing placeholder text when resolver is not available.
+    
+    Parameters:
+    - :param text: text that may contain placeholders
+    - :param item: item data containing rarity and other context
+    
+    Returns:
+    - Processed text with placeholders replaced
+    """
+    if not text:
+        return text
+    
+    # Get rarity from item
+    rarity = item.get('rarity', 'Common')
+    
+    # Define placeholder patterns and their replacements
+    placeholder_patterns = [
+        (r'\+__% Flight Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'\+__% Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'__% Flight Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'__% Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'\+__% Impulse', get_impulse_replacement(rarity)),
+        (r'__% Impulse', get_impulse_replacement(rarity)),
+        (r'\+__% Hull', get_hull_replacement(rarity)),
+        (r'__% Hull', get_hull_replacement(rarity)),
+        (r'\+__% Shield', get_shield_replacement(rarity)),
+        (r'__% Shield', get_shield_replacement(rarity))
+    ]
+    
+    processed_text = text
+    for pattern, replacement in placeholder_patterns:
+        if re.search(pattern, processed_text, flags=re.IGNORECASE):
+            print(f"Debug: Found placeholder pattern '{pattern}' in text: '{text[:100]}...'")
+            print(f"Debug: Replacing with: '{replacement}'")
+            processed_text = re.sub(pattern, replacement, processed_text, flags=re.IGNORECASE)
+            print(f"Debug: Result: '{processed_text[:100]}...'")
+    
+    return processed_text
