@@ -1133,19 +1133,84 @@ def _parse_stat_text(self, head_text, text_content):
         'power_auxiliary': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?auxiliary\s+power'
     }
     
+    # Trait-specific patterns for common traits
+    trait_patterns = {
+        'hull': [
+            r'bulkhead\s+technician.*?hull',
+            r'increases.*?hull.*?hit\s+points',
+            r'\+(\d+)\s*hull',
+            r'(\d+)\s*percent\s*hull'
+        ],
+        'power_weapons': [
+            r'beam\s+training.*?damage',
+            r'increases.*?damage.*?beam\s+weapons',
+            r'\+(\d+)\s*weapon\s+power',
+            r'(\d+)\s*percent\s*weapon\s+power'
+        ],
+        'power_engines': [
+            r'warp\s+theorist.*?power\s+levels',
+            r'improves.*?warp\s+core.*?power\s+levels',
+            r'\+(\d+)\s*engine\s+power',
+            r'(\d+)\s*percent\s*engine\s+power'
+        ],
+        'power_shields': [
+            r'warp\s+theorist.*?power\s+levels',
+            r'improves.*?warp\s+core.*?power\s+levels',
+            r'\+(\d+)\s*shield\s+power',
+            r'(\d+)\s*percent\s*shield\s+power'
+        ],
+        'power_auxiliary': [
+            r'warp\s+theorist.*?power\s+levels',
+            r'improves.*?warp\s+core.*?power\s+levels',
+            r'\+(\d+)\s*auxiliary\s+power',
+            r'(\d+)\s*percent\s*auxiliary\s+power'
+        ]
+    }
+    
     # Combine head and text content for parsing
     full_text = f"{head_text} {text_content}".lower()
     
+    # Remove HTML tags for better parsing
+    import re
+    # Remove HTML tags
+    full_text = re.sub(r'<[^>]+>', '', full_text)
+    # Remove HTML entities
+    full_text = re.sub(r'&[^;]+;', '', full_text)
+    # Clean up extra whitespace
+    full_text = re.sub(r'\s+', ' ', full_text).strip()
+    
+    print(f"Debug: Cleaned text for parsing: {full_text[:200]}...")
+    
+    # First try exact numeric patterns
     for stat_name, pattern in stat_patterns.items():
-        import re
         matches = re.findall(pattern, full_text)
         if matches:
             try:
                 # Take the first match and convert to float
                 value = float(matches[0])
                 bonuses[stat_name] = value
+                print(f"Debug: Found {stat_name}: {value}")
             except (ValueError, IndexError):
                 pass
+    
+    # Then try trait-specific patterns for qualitative bonuses
+    for stat_name, patterns in trait_patterns.items():
+        for pattern in patterns:
+            if re.search(pattern, full_text):
+                # For qualitative traits, assign small default bonuses
+                if stat_name not in bonuses:  # Only if no exact value found
+                    if 'hull' in stat_name:
+                        bonuses[stat_name] = 5.0  # Small hull bonus
+                    elif 'power_weapons' in stat_name:
+                        bonuses[stat_name] = 3.0  # Small weapon power bonus
+                    elif 'power_engines' in stat_name:
+                        bonuses[stat_name] = 2.0  # Small engine power bonus
+                    elif 'power_shields' in stat_name:
+                        bonuses[stat_name] = 2.0  # Small shield power bonus
+                    elif 'power_auxiliary' in stat_name:
+                        bonuses[stat_name] = 2.0  # Small auxiliary power bonus
+                    print(f"Debug: Found qualitative {stat_name} bonus from trait")
+                break
     
     return bonuses
 
@@ -1157,26 +1222,33 @@ def calculate_trait_bonuses(self):
     bonuses = {}
     
     try:
+        print(f"Debug: Checking personal traits in build: {self.build['space'].get('traits', [])}")
+        
         # Check personal traits
         if 'traits' in self.build['space']:
             for trait_data in self.build['space']['traits']:
                 if trait_data and isinstance(trait_data, dict) and 'item' in trait_data:
                     trait_name = trait_data['item']
+                    print(f"Debug: Processing personal trait: {trait_name}")
                     # Parse personal trait effects
                     trait_bonuses = self._parse_trait_bonuses(trait_name, 'personal')
                     for stat, bonus in trait_bonuses.items():
                         bonuses[stat] = bonuses.get(stat, 0) + bonus
+        
+        print(f"Debug: Checking starship traits in build: {self.build['space'].get('starship_traits', [])}")
         
         # Check starship traits
         if 'starship_traits' in self.build['space']:
             for trait_data in self.build['space']['starship_traits']:
                 if trait_data and isinstance(trait_data, dict) and 'item' in trait_data:
                     trait_name = trait_data['item']
+                    print(f"Debug: Processing starship trait: {trait_name}")
                     # Parse starship trait effects
                     trait_bonuses = self._parse_trait_bonuses(trait_name, 'starship')
                     for stat, bonus in trait_bonuses.items():
                         bonuses[stat] = bonuses.get(stat, 0) + bonus
         
+        print(f"Debug: Total trait bonuses calculated: {bonuses}")
         return bonuses
         
     except Exception as e:
@@ -1195,17 +1267,51 @@ def _parse_trait_bonuses(self, trait_name, trait_type):
             for env in ['space', 'ground']:
                 if trait_name in self.cache.traits.get(env, {}).get('personal', {}):
                     trait_info = self.cache.traits[env]['personal'][trait_name]
-                    # Parse trait description for bonuses
-                    if 'tooltip' in trait_info:
-                        bonuses.update(self._parse_stat_text('', trait_info['tooltip']))
+                    print(f"Debug: Found personal trait '{trait_name}' in {env}")
+                    print(f"Debug: Trait info keys: {list(trait_info.keys())}")
+                    
+                    # Try multiple possible fields for trait description
+                    description_fields = ['tooltip', 'description', 'detailed', 'basic']
+                    trait_text = ''
+                    
+                    for field in description_fields:
+                        if field in trait_info and trait_info[field]:
+                            trait_text = trait_info[field]
+                            print(f"Debug: Using '{field}' field for trait '{trait_name}': {trait_text[:100]}...")
+                            break
+                    
+                    if trait_text:
+                        trait_bonuses = self._parse_stat_text('', trait_text)
+                        print(f"Debug: Parsed bonuses for trait '{trait_name}': {trait_bonuses}")
+                        bonuses.update(trait_bonuses)
+                    else:
+                        print(f"Debug: No description found for trait '{trait_name}'")
                     break
         elif trait_type == 'starship':
             # Look in starship traits
             if trait_name in self.cache.starship_traits:
                 trait_info = self.cache.starship_traits[trait_name]
-                # Parse trait description for bonuses
-                if 'tooltip' in trait_info:
-                    bonuses.update(self._parse_stat_text('', trait_info['tooltip']))
+                print(f"Debug: Found starship trait '{trait_name}'")
+                print(f"Debug: Trait info keys: {list(trait_info.keys())}")
+                
+                # Try multiple possible fields for trait description
+                description_fields = ['tooltip', 'description', 'detailed', 'basic', 'short']
+                trait_text = ''
+                
+                for field in description_fields:
+                    if field in trait_info and trait_info[field]:
+                        trait_text = trait_info[field]
+                        print(f"Debug: Using '{field}' field for trait '{trait_name}': {trait_text[:100]}...")
+                        break
+                
+                if trait_text:
+                    trait_bonuses = self._parse_stat_text('', trait_text)
+                    print(f"Debug: Parsed bonuses for trait '{trait_name}': {trait_bonuses}")
+                    bonuses.update(trait_bonuses)
+                else:
+                    print(f"Debug: No description found for trait '{trait_name}'")
+            else:
+                print(f"Debug: Trait '{trait_name}' not found in starship traits")
         
         return bonuses
         
