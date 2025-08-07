@@ -23,6 +23,7 @@ numpy = "*"
 requests_html = "*"
 lxml_html_clean = "*"
 aiohttp = "*"
+beautifulsoup4 = "*"
 
 [tool.poetry.group.dev.dependencies]
 

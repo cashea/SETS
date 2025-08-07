@@ -43,9 +43,20 @@ def add_equipment_tooltip_header(self, item: dict, tooltip_body: str, item_type:
     mods = ' '.join(mod for mod in item['modifiers'] if mod != '' and mod is not None)
     if mods != '':
         item_title += ' ' + mods
+    # Get item type safely, checking if item exists in the specific category
+    item_type_info = ""
+    if item_type in self.cache.equipment and item['item'] in self.cache.equipment[item_type]:
+        item_type_info = self.cache.equipment[item_type][item['item']]['type']
+    else:
+        # Try to find the item in all equipment categories
+        for eq_category, eq_items in self.cache.equipment.items():
+            if item['item'] in eq_items:
+                item_type_info = eq_items[item['item']]['type']
+                break
+    
     tooltip = (
             f"<p style='{head_style}'>{item_title}</p><p style='{subhead_style}'>"
-            f"{item['rarity']} {self.cache.equipment[item_type][item['item']]['type']}</p>")
+            f"{item['rarity']} {item_type_info}</p>")
     return tooltip + tooltip_body
 
 

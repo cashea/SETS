@@ -4,3 +4,8 @@ rules:
     alwaysApply: true
     code: |
       %{command_text%} 2>&1 | cat
+  - name: Use Poetry for package management
+    appliesTo: all
+    alwaysApply: true
+    code: |
+      Use the Poetry package manager rather than UV for Python dependency management.

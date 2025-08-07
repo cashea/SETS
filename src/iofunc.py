@@ -271,6 +271,10 @@ def image(self, image_name: str) -> QImage:
     Parameters:
     - :param image_name: name of the image
     """
+    if image_name not in self.cache.images:
+        # Create a default empty image if the image doesn't exist in cache
+        self.cache.images[image_name] = QImage()
+    
     img = self.cache.images[image_name]
     if img.isNull():
         img_folder = self.config['config_subfolders']['images']

@@ -484,8 +484,19 @@ def slot_equipment_item(self, item: dict, environment: str, build_key: str, buil
     self.build[environment][build_key][build_subkey] = item
     item_image = image(self, item['item'])
     overlay = getattr(self.cache.overlays, item['rarity'].lower().replace(' ', ''))
+    # Get tooltip safely, checking if item exists in the specific category
+    tooltip_text = ""
+    if build_key in self.cache.equipment and item['item'] in self.cache.equipment[build_key]:
+        tooltip_text = self.cache.equipment[build_key][item['item']]['tooltip']
+    else:
+        # Try to find the item in all equipment categories
+        for eq_category, eq_items in self.cache.equipment.items():
+            if item['item'] in eq_items:
+                tooltip_text = eq_items[item['item']]['tooltip']
+                break
+    
     tooltip = add_equipment_tooltip_header(
-            self, item, self.cache.equipment[build_key][item['item']]['tooltip'], build_key)
+            self, item, tooltip_text, build_key)
     self.widgets.build[environment][build_key][build_subkey].set_item_full(
             item_image, overlay, tooltip)
 
@@ -691,9 +702,17 @@ def load_doffs(self, environment: str):
     for spec_combo, spec, variant_combo, variant in doff_zipper:
         spec_combo.setCurrentText(spec)
         if spec != '':
-            variants = getattr(self.cache, f'{environment}_doffs')[spec].keys()
-            variant_combo.addItems({''} | variants)
-            variant_combo.setCurrentText(variant)
+            doff_cache = getattr(self.cache, f'{environment}_doffs')
+            if spec in doff_cache:
+                variants = doff_cache[spec].keys()
+                variant_combo.addItems({''} | variants)
+                variant_combo.setCurrentText(variant)
+            else:
+                # Handle missing specialization
+                print(f"Warning: Missing duty officer specialization '{spec}' in {environment} doffs")
+                variant_combo.clear()
+                variant_combo.addItem('')
+                variant_combo.setCurrentText('')
 
 
 def clear_doffs(self, environment: str = 'both'):

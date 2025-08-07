@@ -32,6 +32,7 @@ from .textedit import (
         create_equipment_tooltip, create_trait_tooltip, dewikify, parse_wikitext,
         sanitize_equipment_name)
 from .widgets import exec_in_thread, notempty, TagStyles, ThreadObject
+from .api_data_loader import create_api_data_loader, load_all_data_via_api
 
 
 def init_backend(self):
@@ -144,12 +145,68 @@ def load_cargo_cache(self, threaded_worker: ThreadObject) -> bool:
 
 def load_cargo_data(self, threaded_worker: ThreadObject):
     """
-    Loads cargo data for all cargo tables and puts them into variables.
+    Loads cargo data for all cargo tables using the MediaWiki API.
 
     Parameters:
     - :param threaded_worker: worker object supplying signals
     """
-    threaded_worker.update_splash.emit('Loading: Starships')
+    logging.info("Loading cargo data via API...")
+    
+    try:
+        # Create API data loader
+        loader = create_api_data_loader(self.config['config_subfolders']['cache'])
+        
+        # Load all data via API
+        threaded_worker.update_splash.emit('Loading: Data via API')
+        api_data = load_all_data_via_api(threaded_worker, self.config['config_subfolders']['cache'])
+        
+        # Store data in cache
+        self.cache.ships = api_data['ships']
+        self.cache.equipment = api_data['equipment']
+        self.cache.traits = api_data['traits']
+        self.cache.starship_traits = api_data['starship_traits']
+        self.cache.images_set = api_data['images_set']
+        
+        # Store to cache files
+        store_to_cache(self, self.cache.ships, 'ships.json')
+        store_to_cache(self, self.cache.equipment, 'equipment.json')
+        store_to_cache(self, self.cache.traits, 'traits.json')
+        store_to_cache(self, self.cache.starship_traits, 'starship_traits.json')
+        
+        # Load duty officers
+        threaded_worker.update_splash.emit('Loading: Bridge Officers')
+        get_boff_data(self)
+        store_to_cache(self, self.cache.boff_abilities, 'boff_abilities.json')
+        
+        # Load modifiers
+        threaded_worker.update_splash.emit('Loading: Modifiers')
+        self.cache.modifiers = api_data['modifiers']
+        store_to_cache(self, self.cache.modifiers, 'modifiers.json')
+        
+        # Load duty officer data
+        self.cache.space_doffs = api_data['doffs']['space']
+        self.cache.ground_doffs = api_data['doffs']['ground']
+        
+        logging.info("Successfully loaded all cargo data via API")
+        
+    except Exception as e:
+        logging.error(f"Error loading cargo data via API: {e}")
+        # Fallback to original method if API fails
+        logging.info("Falling back to original cargo data loading method...")
+        load_cargo_data_fallback(self, threaded_worker)
+
+
+def load_cargo_data_fallback(self, threaded_worker: ThreadObject):
+    """
+    Fallback method for loading cargo data using the original web scraping approach.
+    This is used if the API approach fails.
+
+    Parameters:
+    - :param threaded_worker: worker object supplying signals
+    """
+    logging.info("Using fallback cargo data loading method...")
+    
+    threaded_worker.update_splash.emit('Loading: Starships (Fallback)')
     ship_cargo_data = get_cargo_data(self, 'ship_list.json', SHIP_QUERY_URL)
     self.cache.ships = {ship['Page']: ship for ship in ship_cargo_data}
     store_to_cache(self, self.cache.ships, 'ships.json')
@@ -158,7 +215,7 @@ def load_cargo_data(self, threaded_worker: ThreadObject):
             self.theme['tooltip']['ul'], self.theme['tooltip']['li'],
             self.theme['tooltip']['indent'])
 
-    threaded_worker.update_splash.emit('Loading: Equipment')
+    threaded_worker.update_splash.emit('Loading: Equipment (Fallback)')
     equipment_cargo_data = get_cargo_data(self, 'equipment.json', ITEM_QUERY_URL)
     equipment_types = set(EQUIPMENT_TYPES.keys())
     head_s = self.theme['tooltip']['equipment_head']
@@ -194,7 +251,7 @@ def load_cargo_data(self, threaded_worker: ThreadObject):
     self.cache.equipment['uni_consoles'].update(self.cache.equipment['eng_consoles'])
     store_to_cache(self, self.cache.equipment, 'equipment.json')
 
-    threaded_worker.update_splash.emit('Loading: Traits')
+    threaded_worker.update_splash.emit('Loading: Traits (Fallback)')
     trait_cargo_data = get_cargo_data(self, 'traits.json', TRAIT_QUERY_URL)
     head_s = self.theme['tooltip']['trait_header']
     subhead_s = self.theme['tooltip']['trait_subheader']
@@ -220,7 +277,7 @@ def load_cargo_data(self, threaded_worker: ThreadObject):
                 pass
     store_to_cache(self, self.cache.traits, 'traits.json')
 
-    threaded_worker.update_splash.emit('Loading: Starship Traits')
+    threaded_worker.update_splash.emit('Loading: Starship Traits (Fallback)')
     shiptrait_cargo = get_cargo_data(self, 'starship_traits.json', STARSHIP_TRAIT_QUERY_URL)
     self.cache.starship_traits = {ship_trait['name']: {
         'Page': ship_trait['Page'],
@@ -234,11 +291,11 @@ def load_cargo_data(self, threaded_worker: ThreadObject):
     self.cache.images_set |= self.cache.starship_traits.keys()
     store_to_cache(self, self.cache.starship_traits, 'starship_traits.json')
 
-    threaded_worker.update_splash.emit('Loading: Bridge Officers')
+    threaded_worker.update_splash.emit('Loading: Bridge Officers (Fallback)')
     get_boff_data(self)
     store_to_cache(self, self.cache.boff_abilities, 'boff_abilities.json')
 
-    threaded_worker.update_splash.emit('Loading: Modifiers')
+    threaded_worker.update_splash.emit('Loading: Modifiers (Fallback)')
     mod_cargo_data = get_cargo_data(self, 'modifiers.json', MODIFIER_QUERY)
     for modifier in mod_cargo_data:
         try:

@@ -1,6 +1,6 @@
 from .app import SETS
 
 __all__ = [
-    'app', 'build_manager', 'buildupdater', 'callbacks', 'constants', 'datafunctions', 'iofunc', 'splash', 'style',
-    'subwindows', 'textedit', 'widgetbuilder', 'widgets'
+    'app', 'api_data_loader', 'build_manager', 'buildupdater', 'callbacks', 'constants', 'datafunctions', 'iofunc', 
+    'mediawiki_api', 'splash', 'style', 'subwindows', 'textedit', 'widgetbuilder', 'widgets'
 ]

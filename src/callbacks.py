@@ -954,12 +954,27 @@ def calculate_equipment_bonuses(self):
                     if item_data and isinstance(item_data, dict) and 'item' in item_data:
                         item_name = item_data['item']
                         print(f"Debug: Found item {item_name} in {category}")
+                        # Check if item exists in the specific category
                         if item_name in self.cache.equipment.get(category, {}):
                             item_info = self.cache.equipment[category][item_name]
                             # Parse tooltip for stat bonuses
                             item_bonuses = self._parse_equipment_bonuses(item_info)
                             print(f"Debug: Item {item_name} bonuses: {item_bonuses}")
                             bonuses.update(item_bonuses)
+                        else:
+                            # Try to find the item in all equipment categories
+                            print(f"Debug: Item {item_name} not found in {category}, searching all categories...")
+                            found = False
+                            for eq_category, eq_items in self.cache.equipment.items():
+                                if item_name in eq_items:
+                                    item_info = eq_items[item_name]
+                                    item_bonuses = self._parse_equipment_bonuses(item_info)
+                                    print(f"Debug: Found {item_name} in {eq_category}, bonuses: {item_bonuses}")
+                                    bonuses.update(item_bonuses)
+                                    found = True
+                                    break
+                            if not found:
+                                print(f"Debug: Item {item_name} not found in any equipment category")
         
         return bonuses
         
