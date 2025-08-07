@@ -31,7 +31,7 @@ class SETS():
             refresh_ship_stats, select_ship, set_build_item, set_ui_scale_setting, ship_info_callback,
             skill_unlock_callback, spec_combo_callback, species_combo_callback, switch_main_tab,
             tier_callback, calculate_equipment_bonuses, calculate_trait_bonuses, calculate_skill_bonuses,
-            _parse_equipment_bonuses, _parse_trait_bonuses, _parse_stat_text)
+            _parse_equipment_bonuses, _parse_trait_bonuses, _parse_stat_text, _update_stats_info_text)
     from .datafunctions import (
             autosave, backup_cargo_data, cache_skills, empty_build,
             init_backend, load_legacy_build_image)
@@ -1008,6 +1008,9 @@ class SETS():
             "Click 'Refresh Stats' to update calculations."
         )
         sidebar_layout.addWidget(info_text)
+        
+        # Store reference to info text widget for updating
+        self.widgets.stats_info_text = info_text
         
         sidebar_frame.setLayout(sidebar_layout)
         main_layout.addWidget(sidebar_frame, 0, 2)

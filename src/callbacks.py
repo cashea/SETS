@@ -936,8 +936,101 @@ def refresh_ship_stats(self):
         
         print(f"Ship stats refreshed for: {ship_name}")
         
+        # Update stats information text with detailed breakdown
+        self._update_stats_info_text(equipment_bonuses, trait_bonuses, skill_bonuses, total_bonuses)
+        
     except Exception as e:
         print(f"Error refreshing ship stats: {e}")
+
+
+
+    """
+    Update the stats information text with detailed breakdown of bonuses.
+    """
+    try:
+        if not hasattr(self.widgets, 'stats_info_text'):
+            return
+            
+        info_text = self.widgets.stats_info_text
+        ship_name = self.build['space'].get('ship', '')
+        
+        # Build detailed info text
+        info_lines = [
+            f"Ship Statistics for: {ship_name if ship_name else 'No Ship Selected'}",
+            "",
+            "Base Ship Stats:",
+            "• Hull, Shields, Turn Rate, Impulse, Inertia",
+            "• Power levels (Weapons, Shields, Engines, Auxiliary)",
+            "• Equipment slots (Fore/Aft Weapons, Devices, Hangars)",
+            "",
+            "Equipment Bonuses:"
+        ]
+        
+        # Add equipment bonuses
+        if equipment_bonuses:
+            for stat_name, value in equipment_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No equipment bonuses detected")
+        
+        info_lines.extend([
+            "",
+            "Trait Bonuses:"
+        ])
+        
+        # Add trait bonuses
+        if trait_bonuses:
+            for stat_name, value in trait_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No trait bonuses detected")
+        
+        info_lines.extend([
+            "",
+            "Skill Bonuses:"
+        ])
+        
+        # Add skill bonuses
+        if skill_bonuses:
+            for stat_name, value in skill_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No skill bonuses detected")
+        
+        info_lines.extend([
+            "",
+            "Total Bonuses:"
+        ])
+        
+        # Add total bonuses
+        if total_bonuses:
+            for stat_name, value in total_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No total bonuses")
+        
+        info_lines.extend([
+            "",
+            "Equipment Modifiers:",
+            "• Equipment bonuses are parsed from item tooltips",
+            "• Includes bonuses from weapons, consoles, and other equipment",
+            "• Modifiers are applied to base ship statistics",
+            "",
+            "Note: Click 'Refresh Stats' to recalculate when equipment changes."
+        ])
+        
+        info_text.setPlainText('\n'.join(info_lines))
+        
+    except Exception as e:
+        print(f"Error updating stats info text: {e}")
 
 
 def calculate_equipment_bonuses(self):
@@ -1136,3 +1229,93 @@ def calculate_skill_bonuses(self):
     except Exception as e:
         print(f"Error calculating skill bonuses: {e}")
         return bonuses
+
+
+def _update_stats_info_text(self, equipment_bonuses, trait_bonuses, skill_bonuses, total_bonuses):
+    """
+    Update the stats information text with detailed breakdown of bonuses.
+    """
+    try:
+        if not hasattr(self.widgets, 'stats_info_text'):
+            return
+            
+        info_text = self.widgets.stats_info_text
+        ship_name = self.build['space'].get('ship', '')
+        
+        # Build detailed info text
+        info_lines = [
+            f"Ship Statistics for: {ship_name if ship_name else 'No Ship Selected'}",
+            "",
+            "Base Ship Stats:",
+            "• Hull, Shields, Turn Rate, Impulse, Inertia",
+            "• Power levels (Weapons, Shields, Engines, Auxiliary)",
+            "• Equipment slots (Fore/Aft Weapons, Devices, Hangars)",
+            "",
+            "Equipment Bonuses:"
+        ]
+        
+        # Add equipment bonuses
+        if equipment_bonuses:
+            for stat_name, value in equipment_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No equipment bonuses detected")
+        
+        info_lines.extend([
+            "",
+            "Trait Bonuses:"
+        ])
+        
+        # Add trait bonuses
+        if trait_bonuses:
+            for stat_name, value in trait_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No trait bonuses detected")
+        
+        info_lines.extend([
+            "",
+            "Skill Bonuses:"
+        ])
+        
+        # Add skill bonuses
+        if skill_bonuses:
+            for stat_name, value in skill_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No skill bonuses detected")
+        
+        info_lines.extend([
+            "",
+            "Total Bonuses:"
+        ])
+        
+        # Add total bonuses
+        if total_bonuses:
+            for stat_name, value in total_bonuses.items():
+                if value != 0:
+                    stat_display = stat_name.replace('_', ' ').title()
+                    info_lines.append(f"• {stat_display}: +{value:.1f}")
+        else:
+            info_lines.append("• No total bonuses")
+        
+        info_lines.extend([
+            "",
+            "Equipment Modifiers:",
+            "• Equipment bonuses are parsed from item tooltips",
+            "• Includes bonuses from weapons, consoles, and other equipment",
+            "• Modifiers are applied to base ship statistics",
+            "",
+            "Note: Click 'Refresh Stats' to recalculate when equipment changes."
+        ])
+        
+        info_text.setPlainText('\n'.join(info_lines))
+        
+    except Exception as e:
+        print(f"Error updating stats info text: {e}")
