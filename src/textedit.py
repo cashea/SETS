@@ -1,3 +1,4 @@
+import re
 from re import sub as re_sub
 
 from .constants import CAREER_ABBR, RARITY_COLORS, SKILL_PREFIXES, WIKI_URL
@@ -43,21 +44,15 @@ def add_equipment_tooltip_header(self, item: dict, tooltip_body: str, item_type:
     mods = ' '.join(mod for mod in item['modifiers'] if mod != '' and mod is not None)
     if mods != '':
         item_title += ' ' + mods
-    # Get item type safely, checking if item exists in the specific category
-    item_type_info = ""
-    if item_type in self.cache.equipment and item['item'] in self.cache.equipment[item_type]:
-        item_type_info = self.cache.equipment[item_type][item['item']]['type']
-    else:
-        # Try to find the item in all equipment categories
-        for eq_category, eq_items in self.cache.equipment.items():
-            if item['item'] in eq_items:
-                item_type_info = eq_items[item['item']]['type']
-                break
+    # Get rarity and item type for subtitle
+    rarity = item['rarity']
+    item_type_text = item_type.replace('_', ' ').title()
+    subtitle = f'{rarity} {item_type_text}'
     
-    tooltip = (
-            f"<p style='{head_style}'>{item_title}</p><p style='{subhead_style}'>"
-            f"{item['rarity']} {item_type_info}</p>")
-    return tooltip + tooltip_body
+    tooltip = f'<p style="{head_style}">{item_title}</p>'
+    tooltip += f'<p style="{subhead_style}">{subtitle}</p>'
+    tooltip += tooltip_body
+    return tooltip
 
 
 def format_skill_tooltip(
@@ -188,15 +183,18 @@ def create_equipment_tooltip(
         tooltip += f"<p style='{who_style}'>{item['who']}</p>"
     for i in range(1, 10, 1):
         if item[f'head{i}'] is not None:
-            tooltip += f"<p style='{head_style}'>{format_wikitext(dewikify(item[f'head{i}']))}</p>"
+            processed_text = process_placeholder_text(dewikify(item[f'head{i}']), item)
+            tooltip += f"<p style='{head_style}'>{format_wikitext(processed_text)}</p>"
         if item[f'subhead{i}'] is not None:
+            processed_text = process_placeholder_text(dewikify(item[f'subhead{i}']), item)
             tooltip += (
                     f"<p style='{subhead_style}'>"
-                    f"{format_wikitext(dewikify(item[f'subhead{i}']))}</p>")
+                    f"{format_wikitext(processed_text)}</p>")
         if item[f'text{i}'] is not None:
+            processed_text = process_placeholder_text(dewikify(item[f'text{i}']), item)
             tooltip += (
                     f"<p style='margin:0'>"
-                    f"{parse_wikitext(dewikify(item[f'text{i}']), tags)}</p>")
+                    f"{parse_wikitext(processed_text, tags)}</p>")
     return tooltip
 
 
@@ -358,6 +356,108 @@ def compensate_json(text: str) -> str:
     text = text.replace('&#039;', "'")
     text = text.replace('&#39;', "'")
     return text
+
+
+def process_placeholder_text(text: str, item: dict) -> str:
+    """
+    Process text to replace placeholder values with resolved values.
+    
+    Parameters:
+    - :param text: text that may contain placeholders
+    - :param item: item data containing rarity and other context
+    
+    Returns:
+    - Processed text with placeholders replaced
+    """
+    if not text:
+        return text
+    
+    # Get rarity from item
+    rarity = item.get('rarity', 'Common')
+    
+    # Define placeholder patterns and their replacements
+    placeholder_patterns = [
+        (r'\+__% Flight Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'\+__% Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'__% Flight Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'__% Turn Rate', get_rcs_turn_rate_replacement(rarity)),
+        (r'\+__% Impulse', get_impulse_replacement(rarity)),
+        (r'__% Impulse', get_impulse_replacement(rarity)),
+        (r'\+__% Hull', get_hull_replacement(rarity)),
+        (r'__% Hull', get_hull_replacement(rarity)),
+        (r'\+__% Shield', get_shield_replacement(rarity)),
+        (r'__% Shield', get_shield_replacement(rarity))
+    ]
+    
+    processed_text = text
+    for pattern, replacement in placeholder_patterns:
+        if re.search(pattern, processed_text, flags=re.IGNORECASE):
+            print(f"Debug: Found placeholder pattern '{pattern}' in text: '{text[:100]}...'")
+            print(f"Debug: Replacing with: '{replacement}'")
+            processed_text = re.sub(pattern, replacement, processed_text, flags=re.IGNORECASE)
+            print(f"Debug: Result: '{processed_text[:100]}...'")
+    
+    return processed_text
+
+
+def get_rcs_turn_rate_replacement(rarity: str) -> str:
+    """Get turn rate replacement based on rarity"""
+    rarity_scaling = {
+        'Common': 1.0,
+        'Uncommon': 1.2,
+        'Rare': 1.5,
+        'Very Rare': 2.0,
+        'Ultra Rare': 2.5,
+        'Epic': 3.0
+    }
+    scaling = rarity_scaling.get(rarity, 1.0)
+    base_value = 15.0 * scaling
+    return f"+{base_value:.1f}% Flight Turn Rate"
+
+
+def get_impulse_replacement(rarity: str) -> str:
+    """Get impulse replacement based on rarity"""
+    rarity_scaling = {
+        'Common': 1.0,
+        'Uncommon': 1.2,
+        'Rare': 1.5,
+        'Very Rare': 2.0,
+        'Ultra Rare': 2.5,
+        'Epic': 3.0
+    }
+    scaling = rarity_scaling.get(rarity, 1.0)
+    base_value = 10.0 * scaling
+    return f"+{base_value:.1f}% Impulse"
+
+
+def get_hull_replacement(rarity: str) -> str:
+    """Get hull replacement based on rarity"""
+    rarity_scaling = {
+        'Common': 1.0,
+        'Uncommon': 1.2,
+        'Rare': 1.5,
+        'Very Rare': 2.0,
+        'Ultra Rare': 2.5,
+        'Epic': 3.0
+    }
+    scaling = rarity_scaling.get(rarity, 1.0)
+    base_value = 5.0 * scaling
+    return f"+{base_value:.1f}% Hull"
+
+
+def get_shield_replacement(rarity: str) -> str:
+    """Get shield replacement based on rarity"""
+    rarity_scaling = {
+        'Common': 1.0,
+        'Uncommon': 1.2,
+        'Rare': 1.5,
+        'Very Rare': 2.0,
+        'Ultra Rare': 2.5,
+        'Epic': 3.0
+    }
+    scaling = rarity_scaling.get(rarity, 1.0)
+    base_value = 5.0 * scaling
+    return f"+{base_value:.1f}% Shield"
 
 
 def sanitize_equipment_name(name: str) -> str:

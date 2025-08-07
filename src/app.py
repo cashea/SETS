@@ -31,7 +31,7 @@ class SETS():
             refresh_ship_stats, select_ship, set_build_item, set_ui_scale_setting, ship_info_callback,
             skill_unlock_callback, spec_combo_callback, species_combo_callback, switch_main_tab,
             tier_callback, calculate_equipment_bonuses, calculate_trait_bonuses, calculate_skill_bonuses,
-            _parse_equipment_bonuses, _parse_trait_bonuses, _parse_stat_text, _update_stats_info_text,
+            _parse_equipment_bonuses, _parse_trait_bonuses, _update_stats_info_text,
             _format_stat_value, calculate_equipment_bonuses_by_category)
     from .datafunctions import (
             autosave, backup_cargo_data, cache_skills, empty_build,

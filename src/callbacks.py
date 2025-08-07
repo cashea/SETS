@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from .buildupdater import (
         align_space_frame, clear_captain, clear_doffs, clear_ground_build, clear_ship, clear_traits,
@@ -1178,7 +1179,7 @@ def _parse_equipment_bonuses(self, item_info):
                     text_content = raw_data.get(text_key, '')
                     
                     # Parse common stat patterns
-                    bonuses.update(self._parse_stat_text(head_text, text_content))
+                    bonuses.update(self._parse_stat_text(head_text, text_content, item_info))
         else:
             print(f"Debug: No raw_data found for item {item_info.get('name', 'unknown')}")
         
@@ -1188,10 +1189,10 @@ def _parse_equipment_bonuses(self, item_info):
         print(f"Error parsing equipment bonuses for {item_info.get('name', 'unknown')}: {e}")
         return bonuses
 
-def _parse_stat_text(self, head_text, text_content):
-    """
-    Parse text content for stat bonuses.
-    """
+    def _parse_stat_text(self, head_text, text_content, item_info=None):
+        """
+        Parse text content for stat bonuses.
+        """
     bonuses = {}
     
     # Common stat patterns to look for
@@ -1215,7 +1216,11 @@ def _parse_stat_text(self, head_text, text_content):
             r'(\+?\d+(?:\.\d+)?)\s*percent\s*turn\s+rate',
             r'(\+?\d+(?:\.\d+)?)\s*turn\s+rate',
             r'rcs.*?(\+?\d+(?:\.\d+)?)\s*percent',
-            r'(\+?\d+(?:\.\d+)?)\s*percent.*?turn'
+            r'(\+?\d+(?:\.\d+)?)\s*percent.*?turn',
+            # Handle placeholder values for RCS Accelerator
+            r'\+__%\s*flight\s+turn\s+rate.*?(\d+(?:\.\d+)?)\s*turn\s+rate',
+            r'rcs.*?\+__%\s*flight\s+turn\s+rate',
+            r'\+__%\s*flight\s+turn\s+rate'
         ],
         'impulse': [
             r'(\+?\d+(?:\.\d+)?)\s*impulse',
@@ -1298,6 +1303,102 @@ def _parse_stat_text(self, head_text, text_content):
                 except (ValueError, IndexError):
                     pass
     
+    # Enhanced handling for placeholder values in wiki content
+    # Check for any placeholder patterns (not just RCS Accelerator)
+    placeholder_patterns = [
+        r'\+__%\s*flight\s*turn\s*rate',
+        r'\+__%\s*turn\s*rate',
+        r'__%\s*flight\s*turn\s*rate',
+        r'__%\s*turn\s*rate',
+        r'\+__%\s*impulse',
+        r'__%\s*impulse',
+        r'\+__%\s*hull',
+        r'__%\s*hull',
+        r'\+__%\s*shield',
+        r'__%\s*shield'
+    ]
+    
+    is_placeholder = any(re.search(pattern, full_text, re.IGNORECASE) for pattern in placeholder_patterns)
+    
+    if is_placeholder:
+        print(f"Debug: Placeholder detected in text: '{full_text[:100]}...'")
+        
+        # Get rarity and item info for better context
+        rarity = None
+        item_name = head_text
+        if item_info and 'raw_data' in item_info:
+            raw_data = item_info['raw_data']
+            rarity = raw_data.get('rarity')
+            item_name = raw_data.get('name', head_text)
+            print(f"Debug: Item: {item_name}, Rarity: {rarity}")
+        
+        # First, look for specific values in the text (non-placeholder)
+        specific_patterns = {
+            'turn_rate': [
+                r'(\d+(?:\.\d+)?)\s*turn\s+rate',
+                r'\+(\d+(?:\.\d+)?)\s*turn\s+rate',
+                r'(\d+(?:\.\d+)?)\s*percent\s*turn\s+rate',
+                r'\+(\d+(?:\.\d+)?)\s*percent\s*turn\s+rate',
+                r'(\d+(?:\.\d+)?)\s*flight\s*turn\s*rate',
+                r'\+(\d+(?:\.\d+)?)\s*flight\s*turn\s*rate'
+            ],
+            'impulse': [
+                r'(\d+(?:\.\d+)?)\s*impulse',
+                r'\+(\d+(?:\.\d+)?)\s*impulse',
+                r'(\d+(?:\.\d+)?)\s*percent\s*impulse',
+                r'\+(\d+(?:\.\d+)?)\s*percent\s*impulse'
+            ],
+            'hull': [
+                r'(\d+(?:\.\d+)?)\s*hull',
+                r'\+(\d+(?:\.\d+)?)\s*hull',
+                r'(\d+(?:\.\d+)?)\s*percent\s*hull',
+                r'\+(\d+(?:\.\d+)?)\s*percent\s*hull'
+            ],
+            'shields': [
+                r'(\d+(?:\.\d+)?)\s*shield',
+                r'\+(\d+(?:\.\d+)?)\s*shield',
+                r'(\d+(?:\.\d+)?)\s*percent\s*shield',
+                r'\+(\d+(?:\.\d+)?)\s*percent\s*shield'
+            ]
+        }
+        
+        # Look for specific values in the text
+        found_specific = False
+        for stat_name, patterns in specific_patterns.items():
+            for pattern in patterns:
+                match = re.search(pattern, full_text, re.IGNORECASE)
+                if match:
+                    value = float(match.group(1))
+                    bonuses[stat_name] = value
+                    print(f"Debug: Found {stat_name} from text: {value}")
+                    found_specific = True
+                    break
+            if found_specific:
+                break
+        
+        # If no specific values found, try web scraping for known equipment types
+        if not found_specific:
+            if 'rcs' in full_text and 'accelerator' in full_text:
+                print(f"Debug: Attempting web scraping for RCS Accelerator")
+                scraped_value = self._scrape_equipment_stat(item_name, 'turn_rate', rarity)
+                if scraped_value is not None:
+                    bonuses['turn_rate'] = scraped_value
+                    print(f"Debug: Found turn rate from web scraping: {scraped_value}")
+                    found_specific = True
+            
+            # Add more equipment types here as needed
+            elif 'impulse' in full_text and 'engine' in full_text:
+                print(f"Debug: Attempting web scraping for Impulse Engine")
+                scraped_value = self._scrape_equipment_stat(item_name, 'impulse', rarity)
+                if scraped_value is not None:
+                    bonuses['impulse'] = scraped_value
+                    print(f"Debug: Found impulse from web scraping: {scraped_value}")
+                    found_specific = True
+        
+        # If still no values found, apply intelligent defaults based on equipment type and rarity
+        if not found_specific:
+            self._apply_intelligent_defaults(bonuses, full_text, rarity, item_name)
+    
     # Then try trait-specific patterns for qualitative bonuses
     for stat_name, patterns in trait_patterns.items():
         for pattern in patterns:
@@ -1318,6 +1419,267 @@ def _parse_stat_text(self, head_text, text_content):
                 break
     
     return bonuses
+
+    def _scrape_equipment_stat(self, item_name: str, stat_type: str, rarity: Optional[str] = None) -> Optional[float]:
+        """
+        Generic equipment stat scraper that can handle different equipment types and stats.
+        
+        Args:
+            item_name: Name of the equipment item
+            stat_type: Type of stat to scrape (turn_rate, impulse, hull, shields, etc.)
+            rarity: Rarity of the item (optional)
+            
+        Returns:
+            Stat value as float, or None if not found
+        """
+        try:
+            # Import here to avoid circular imports
+            from .wiki_scraper import WikiScraper
+            
+            scraper = WikiScraper()
+            
+            # Convert item name to wiki page URL
+            page_name = item_name.replace("Console - ", "").replace(" ", "_")
+            url = f"https://stowiki.net/wiki/{page_name}"
+            
+            print(f"Debug: Scraping {stat_type} for {item_name} from: {url}")
+            if rarity:
+                print(f"Debug: Looking for {rarity} rarity variant")
+            
+            # Get the page content
+            soup = scraper.get_page_content(url)
+            if not soup:
+                print(f"Debug: Failed to fetch page: {url}")
+                return None
+            
+            # Define stat-specific patterns
+            stat_patterns = {
+                'turn_rate': [
+                    r'(\d+(?:\.\d+)?)\s*%\s*Flight\s*Turn\s*Rate',
+                    r'(\d+(?:\.\d+)?)\s*%\s*Turn\s*Rate',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Flight\s*Turn\s*Rate',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Turn\s*Rate',
+                    r'Turn\s*Rate.*?(\d+(?:\.\d+)?)\s*%',
+                    r'Flight\s*Turn\s*Rate.*?(\d+(?:\.\d+)?)\s*%'
+                ],
+                'impulse': [
+                    r'(\d+(?:\.\d+)?)\s*%\s*Impulse',
+                    r'(\d+(?:\.\d+)?)\s*%\s*Speed',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Impulse',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Speed',
+                    r'Impulse.*?(\d+(?:\.\d+)?)\s*%',
+                    r'Speed.*?(\d+(?:\.\d+)?)\s*%'
+                ],
+                'hull': [
+                    r'(\d+(?:\.\d+)?)\s*%\s*Hull',
+                    r'(\d+(?:\.\d+)?)\s*%\s*Hit\s*Points',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Hull',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Hit\s*Points',
+                    r'Hull.*?(\d+(?:\.\d+)?)\s*%',
+                    r'Hit\s*Points.*?(\d+(?:\.\d+)?)\s*%'
+                ],
+                'shields': [
+                    r'(\d+(?:\.\d+)?)\s*%\s*Shield',
+                    r'(\d+(?:\.\d+)?)\s*%\s*Shield\s*Capacity',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Shield',
+                    r'\+(\d+(?:\.\d+)?)\s*%\s*Shield\s*Capacity',
+                    r'Shield.*?(\d+(?:\.\d+)?)\s*%',
+                    r'Shield\s*Capacity.*?(\d+(?:\.\d+)?)\s*%'
+                ]
+            }
+            
+            patterns = stat_patterns.get(stat_type, [])
+            if not patterns:
+                print(f"Debug: No patterns defined for stat type: {stat_type}")
+                return None
+            
+            # If rarity is specified, look for rarity-specific patterns first
+            if rarity:
+                rarity_patterns = []
+                for pattern in patterns:
+                    rarity_patterns.extend([
+                        rf'{rarity}.*?{pattern}',
+                        rf'{pattern}.*?{rarity}',
+                        rf'{rarity}.*?(\d+(?:\.\d+)?)\s*%'
+                    ])
+                patterns = rarity_patterns + patterns
+            
+            # Search in the page text
+            page_text = soup.get_text()
+            
+            for pattern in patterns:
+                match = re.search(pattern, page_text, re.IGNORECASE)
+                if match:
+                    value = float(match.group(1))
+                    print(f"Debug: Found {stat_type} {value}% from web scraping")
+                    return value
+            
+            # Also check for cargo table data
+            cargo_tables = soup.find_all('table', class_='cargo-table')
+            for table in cargo_tables:
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) >= 2:
+                        cell_text = ' '.join([cell.get_text() for cell in cells])
+                        for pattern in patterns:
+                            match = re.search(pattern, cell_text, re.IGNORECASE)
+                            if match:
+                                value = float(match.group(1))
+                                print(f"Debug: Found {stat_type} {value}% from cargo table")
+                                return value
+            
+            print(f"Debug: No {stat_type} found in web scraping for {item_name}")
+            return None
+            
+        except Exception as e:
+            print(f"Debug: Error during web scraping for {stat_type}: {e}")
+            return None
+
+    def _apply_intelligent_defaults(self, bonuses: dict, full_text: str, rarity: str, item_name: str):
+        """
+        Apply intelligent default values based on equipment type, rarity, and context.
+        
+        Args:
+            bonuses: Dictionary to add bonuses to
+            full_text: Full text content for context
+            rarity: Rarity of the item
+            item_name: Name of the item
+        """
+        print(f"Debug: Applying intelligent defaults for {item_name} ({rarity})")
+        
+        # Rarity-based scaling factors
+        rarity_scaling = {
+            'Common': 1.0,
+            'Uncommon': 1.2,
+            'Rare': 1.5,
+            'Very Rare': 2.0,
+            'Ultra Rare': 2.5,
+            'Epic': 3.0
+        }
+        
+        scaling = rarity_scaling.get(rarity, 1.0)
+        
+        # Equipment-specific defaults
+        if 'rcs' in full_text.lower() and 'accelerator' in full_text.lower():
+            base_value = 15.0
+            if 'conductive' in full_text.lower():
+                base_value = 20.0
+            elif 'bellum' in full_text.lower():
+                base_value = 15.0
+            elif 'pax' in full_text.lower():
+                base_value = 15.0
+            elif 'enhanced' in full_text.lower():
+                base_value = 18.0
+            
+            final_value = base_value * scaling
+            bonuses['turn_rate'] = final_value
+            print(f"Debug: Applied intelligent default turn rate: {final_value} (base: {base_value}, scaling: {scaling})")
+        
+        elif 'impulse' in full_text.lower() and 'engine' in full_text.lower():
+            base_value = 10.0
+            final_value = base_value * scaling
+            bonuses['impulse'] = final_value
+            print(f"Debug: Applied intelligent default impulse: {final_value}")
+        
+        elif 'hull' in full_text.lower():
+            base_value = 5.0
+            final_value = base_value * scaling
+            bonuses['hull'] = final_value
+            print(f"Debug: Applied intelligent default hull: {final_value}")
+        
+        elif 'shield' in full_text.lower():
+            base_value = 5.0
+            final_value = base_value * scaling
+            bonuses['shields'] = final_value
+            print(f"Debug: Applied intelligent default shields: {final_value}")
+
+    def _scrape_rcs_accelerator_turn_rate(self, console_name: str, rarity: Optional[str] = None) -> Optional[float]:
+        """
+        Scrape the actual turn rate value for RCS Accelerator consoles from the wiki.
+        
+        Args:
+            console_name: Name of the console (e.g., "Console - Engineering - RCS Accelerator")
+            
+        Returns:
+            Turn rate value as float, or None if not found
+        """
+        try:
+            # Import here to avoid circular imports
+            from .wiki_scraper import WikiScraper
+            
+            scraper = WikiScraper()
+            
+            # Convert console name to wiki page URL
+            # Remove "Console - " prefix and replace spaces with underscores
+            page_name = console_name.replace("Console - ", "").replace(" ", "_")
+            url = f"https://stowiki.net/wiki/{page_name}"
+            
+            print(f"Debug: Scraping RCS Accelerator data from: {url}")
+            if rarity:
+                print(f"Debug: Looking for {rarity} rarity variant")
+            
+            # Get the page content
+            soup = scraper.get_page_content(url)
+            if not soup:
+                print(f"Debug: Failed to fetch page: {url}")
+                return None
+            
+            # Look for turn rate information in the page
+            # Common patterns for turn rate in wiki pages
+            turn_rate_patterns = [
+                r'(\d+(?:\.\d+)?)\s*%\s*Flight\s*Turn\s*Rate',
+                r'(\d+(?:\.\d+)?)\s*%\s*Turn\s*Rate',
+                r'\+(\d+(?:\.\d+)?)\s*%\s*Flight\s*Turn\s*Rate',
+                r'\+(\d+(?:\.\d+)?)\s*%\s*Turn\s*Rate',
+                r'Turn\s*Rate.*?(\d+(?:\.\d+)?)\s*%',
+                r'Flight\s*Turn\s*Rate.*?(\d+(?:\.\d+)?)\s*%'
+            ]
+            
+            # If rarity is specified, look for rarity-specific patterns first
+            if rarity:
+                rarity_patterns = [
+                    rf'{rarity}.*?(\d+(?:\.\d+)?)\s*%\s*Flight\s*Turn\s*Rate',
+                    rf'{rarity}.*?(\d+(?:\.\d+)?)\s*%\s*Turn\s*Rate',
+                    rf'{rarity}.*?\+(\d+(?:\.\d+)?)\s*%\s*Flight\s*Turn\s*Rate',
+                    rf'{rarity}.*?\+(\d+(?:\.\d+)?)\s*%\s*Turn\s*Rate',
+                    rf'Flight\s*Turn\s*Rate.*?{rarity}.*?(\d+(?:\.\d+)?)\s*%',
+                    rf'Turn\s*Rate.*?{rarity}.*?(\d+(?:\.\d+)?)\s*%'
+                ]
+                # Add rarity-specific patterns to the beginning of the search list
+                turn_rate_patterns = rarity_patterns + turn_rate_patterns
+            
+            # Search in the page text
+            page_text = soup.get_text()
+            
+            for pattern in turn_rate_patterns:
+                match = re.search(pattern, page_text, re.IGNORECASE)
+                if match:
+                    value = float(match.group(1))
+                    print(f"Debug: Found turn rate {value}% from web scraping")
+                    return value
+            
+            # Also check for cargo table data
+            cargo_tables = soup.find_all('table', class_='cargo-table')
+            for table in cargo_tables:
+                rows = table.find_all('tr')
+                for row in rows:
+                    cells = row.find_all(['td', 'th'])
+                    if len(cells) >= 2:
+                        cell_text = ' '.join([cell.get_text() for cell in cells])
+                        for pattern in turn_rate_patterns:
+                            match = re.search(pattern, cell_text, re.IGNORECASE)
+                            if match:
+                                value = float(match.group(1))
+                                print(f"Debug: Found turn rate {value}% from cargo table")
+                                return value
+            
+            print(f"Debug: No turn rate found in web scraping for {console_name}")
+            return None
+            
+        except Exception as e:
+            print(f"Debug: Error during web scraping: {e}")
+            return None
 
 
 def calculate_trait_bonuses(self):
