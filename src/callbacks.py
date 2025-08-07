@@ -38,6 +38,8 @@ def switch_main_tab(self, index):
     self.widgets.character_tabber.setCurrentIndex(CHAR_TAB_MAP[index])
     if index == 4:
         self.widgets.sidebar.setVisible(False)
+        # Auto-refresh ship stats when entering the ship stats page
+        self.refresh_ship_stats()
     else:
         self.widgets.sidebar.setVisible(True)
 
