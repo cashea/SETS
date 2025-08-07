@@ -295,36 +295,51 @@ class APIDataLoader:
             for doff in doff_data:
                 spec = doff.get('spec', '')
                 if spec:
-                    doff_info = {
-                        'spec': spec,
-                        'shipdutytype': doff.get('shipdutytype', ''),
-                        'department': doff.get('department', ''),
-                        'description': doff.get('description', ''),
-                        'white': doff.get('white', ''),
-                        'green': doff.get('green', ''),
-                        'blue': doff.get('blue', ''),
-                        'purple': doff.get('purple', ''),
-                        'violet': doff.get('violet', ''),
-                        'gold': doff.get('gold', '')
-                    }
+                    # Create separate entries for each rarity level that has content
+                    rarities = ['white', 'green', 'blue', 'purple', 'violet', 'gold']
                     
-                    # Determine if it's space or ground based on shipdutytype (like the original method)
-                    shipdutytype = doff.get('shipdutytype', '')
-                    if shipdutytype == 'Space':
-                        space_doffs[spec] = doff_info
-                    elif shipdutytype == 'Ground':
-                        ground_doffs[spec] = doff_info
-                    elif shipdutytype is not None and shipdutytype != '':
-                        # If it's not explicitly Space or Ground, add to both (like original method)
-                        space_doffs[spec] = doff_info
-                        ground_doffs[spec] = doff_info
-                    else:
-                        # Fallback: try to determine from department
-                        department = doff.get('department', '').lower()
-                        if 'space' in department or 'ship' in department:
-                            space_doffs[spec] = doff_info
-                        else:
-                            ground_doffs[spec] = doff_info
+                    for rarity in rarities:
+                        description = doff.get(rarity, '')
+                        if description and isinstance(description, str):
+                            description = description.strip()
+                            if description:  # Only create entry if description exists
+                                doff_info = {
+                                'spec': spec,
+                                'shipdutytype': doff.get('shipdutytype', ''),
+                                'department': doff.get('department', ''),
+                                'description': description,
+                                'rarity': rarity
+                            }
+                            
+                            # Determine if it's space or ground based on shipdutytype (like the original method)
+                            shipdutytype = doff.get('shipdutytype', '')
+                            if shipdutytype == 'Space':
+                                if spec not in space_doffs:
+                                    space_doffs[spec] = {}
+                                space_doffs[spec][description] = doff_info
+                            elif shipdutytype == 'Ground':
+                                if spec not in ground_doffs:
+                                    ground_doffs[spec] = {}
+                                ground_doffs[spec][description] = doff_info
+                            elif shipdutytype is not None and shipdutytype != '':
+                                # If it's not explicitly Space or Ground, add to both (like original method)
+                                if spec not in space_doffs:
+                                    space_doffs[spec] = {}
+                                if spec not in ground_doffs:
+                                    ground_doffs[spec] = {}
+                                space_doffs[spec][description] = doff_info
+                                ground_doffs[spec][description] = doff_info
+                            else:
+                                # Fallback: try to determine from department
+                                department = doff.get('department', '').lower()
+                                if 'space' in department or 'ship' in department:
+                                    if spec not in space_doffs:
+                                        space_doffs[spec] = {}
+                                    space_doffs[spec][description] = doff_info
+                                else:
+                                    if spec not in ground_doffs:
+                                        ground_doffs[spec] = {}
+                                    ground_doffs[spec][description] = doff_info
             
             logging.info(f"Loaded {len(space_doffs)} space and {len(ground_doffs)} ground doffs via API")
             return {
