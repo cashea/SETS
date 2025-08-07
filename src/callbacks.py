@@ -884,13 +884,18 @@ def refresh_ship_stats(self):
         }
         
         # Display base stats
+        print(f"Debug: Available ship_stats widgets: {list(self.widgets.ship_stats.keys())}")
         for stat_name, value in base_stats.items():
-            widget_key = stat_name.replace('_', '_')
+            # Convert stat_name to widget key format (e.g., 'power_weapons' -> 'power_weapons')
+            widget_key = stat_name
+            print(f"Debug: Looking for widget key '{widget_key}' for stat '{stat_name}'")
             if widget_key in self.widgets.ship_stats:
                 if isinstance(value, float):
                     self.widgets.ship_stats[widget_key].setText(f"{value:.1f}")
                 else:
                     self.widgets.ship_stats[widget_key].setText(str(value))
+            else:
+                print(f"Debug: Widget key '{widget_key}' not found in ship_stats")
         
         # Calculate equipment bonuses
         equipment_bonuses = self.calculate_equipment_bonuses()
@@ -919,12 +924,15 @@ def refresh_ship_stats(self):
             bonus = total_bonuses.get(stat_name, 0)
             total_value = base_value + bonus
             
-            calc_widget_key = f"calc_total_{stat_name.replace('_', '_')}"
+            # The widget keys have an extra "total_" prefix due to how they're created
+            calc_widget_key = f"calc_total_total_{stat_name}"
             if calc_widget_key in self.widgets.ship_stats:
                 if isinstance(total_value, float):
                     self.widgets.ship_stats[calc_widget_key].setText(f"{total_value:.1f}")
                 else:
                     self.widgets.ship_stats[calc_widget_key].setText(str(total_value))
+            else:
+                print(f"Debug: Calculated widget key '{calc_widget_key}' not found in ship_stats")
         
         print(f"Ship stats refreshed for: {ship_name}")
         
