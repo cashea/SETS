@@ -308,12 +308,23 @@ class APIDataLoader:
                         'gold': doff.get('gold', '')
                     }
                     
-                    # Determine if it's space or ground based on department
-                    department = doff.get('department', '').lower()
-                    if 'space' in department or 'ship' in department:
+                    # Determine if it's space or ground based on shipdutytype (like the original method)
+                    shipdutytype = doff.get('shipdutytype', '')
+                    if shipdutytype == 'Space':
                         space_doffs[spec] = doff_info
-                    else:
+                    elif shipdutytype == 'Ground':
                         ground_doffs[spec] = doff_info
+                    elif shipdutytype is not None and shipdutytype != '':
+                        # If it's not explicitly Space or Ground, add to both (like original method)
+                        space_doffs[spec] = doff_info
+                        ground_doffs[spec] = doff_info
+                    else:
+                        # Fallback: try to determine from department
+                        department = doff.get('department', '').lower()
+                        if 'space' in department or 'ship' in department:
+                            space_doffs[spec] = doff_info
+                        else:
+                            ground_doffs[spec] = doff_info
             
             logging.info(f"Loaded {len(space_doffs)} space and {len(ground_doffs)} ground doffs via API")
             return {
