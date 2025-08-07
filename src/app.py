@@ -28,9 +28,10 @@ class SETS():
             clear_all, clear_slot, clear_build_callback, copy_equipment_item, edit_equipment_item,
             elite_callback, faction_combo_callback, load_build_callback, load_skills_callback,
             open_wiki_context, paste_equipment_item, save_build_callback, save_skills_callback,
-            select_ship, set_build_item, set_ui_scale_setting, ship_info_callback,
+            refresh_ship_stats, select_ship, set_build_item, set_ui_scale_setting, ship_info_callback,
             skill_unlock_callback, spec_combo_callback, species_combo_callback, switch_main_tab,
-            tier_callback)
+            tier_callback, calculate_equipment_bonuses, calculate_trait_bonuses, calculate_skill_bonuses,
+            _parse_equipment_bonuses, _parse_trait_bonuses, _parse_stat_text)
     from .datafunctions import (
             autosave, backup_cargo_data, cache_skills, empty_build,
             init_backend, load_legacy_build_image)
@@ -126,12 +127,74 @@ class SETS():
         """
         return self.app.exec()
 
+    def calculate_optimal_ui_scale(self) -> float:
+        """
+        Calculates optimal UI scale based on screen dimensions and DPI.
+        
+        Returns:
+        - :return: Optimal UI scale factor (float)
+        """
+        # Get the QApplication instance
+        temp_app = QApplication.instance()
+        if temp_app is None:
+            # If no QApplication exists, we can't get screen info
+            return 1.0
+        
+        # Get the primary screen
+        screen = temp_app.primaryScreen()
+        if screen is None:
+            return 1.0
+        
+        # Get screen geometry and DPI
+        geometry = screen.geometry()
+        width = geometry.width()
+        height = geometry.height()
+        
+        # Get logical DPI (more accurate for scaling calculations)
+        logical_dpi = screen.logicalDotsPerInch()
+        
+        # Calculate diagonal size in inches using logical DPI
+        diagonal_pixels = (width ** 2 + height ** 2) ** 0.5
+        diagonal_inches = diagonal_pixels / logical_dpi if logical_dpi > 0 else diagonal_pixels / 96.0
+        
+        # Base scale calculation on screen diagonal and DPI
+        # Target comfortable viewing on 24" 1920x1080 at 96 DPI
+        base_diagonal = 22.5
+        base_dpi = 96.0
+        base_scale = 1.0
+        
+        # Calculate scale based on diagonal size and DPI ratio
+        if diagonal_inches > 0:
+            # Factor in both diagonal size and DPI
+            diagonal_factor = diagonal_inches / base_diagonal
+            dpi_factor = logical_dpi / base_dpi
+            
+            # Combine factors with more weight on DPI for high-DPI displays
+            if dpi_factor > 1.5:  # High-DPI display
+                optimal_scale = base_scale * (0.7 * diagonal_factor + 0.3 * dpi_factor)
+            else:  # Standard DPI display
+                optimal_scale = base_scale * (0.8 * diagonal_factor + 0.2 * dpi_factor)
+            
+            # Clamp between 0.7 and 2.0 (reasonable range for most screens)
+            optimal_scale = max(0.7, min(2.0, optimal_scale))
+            return round(optimal_scale, 2)
+        
+        return 1.0
+
     def init_settings(self):
         """
         Prepares settings. Loads stored settings. Saves current settings for next startup.
         """
         settings_path = os.path.abspath(os.path.join(self.app_dir, self.config['settings_path']))
         self.settings = QSettings(settings_path, QSettings.Format.IniFormat)
+        
+        # Check if ui_scale is not set or is the default value
+        current_ui_scale = self.settings.value('ui_scale', None)
+        if current_ui_scale is None or (isinstance(current_ui_scale, str) and float(current_ui_scale) == 1.0):
+            # We'll calculate optimal UI scale after QApplication is created
+            # For now, use default value
+            self.settings.setValue('ui_scale', 1.0)
+        
         for setting, value in self.config['default_settings'].items():
             if self.settings.value(setting, None) is None:
                 self.settings.setValue(setting, value)
@@ -147,7 +210,17 @@ class SETS():
             self.config['config_subfolders'][folder] = os.path.join(config_folder, path)
         self.config['autosave_filename'] = os.path.join(
                 config_folder, self.config['autosave_filename'])
-        self.config['ui_scale'] = self.settings.value('ui_scale', type=float)
+        
+        # Get UI scale from settings
+        ui_scale = self.settings.value('ui_scale', type=float)
+        
+        # If UI scale is still default (1.0), calculate optimal scale now that QApplication exists
+        if ui_scale == 1.0:
+            optimal_scale = self.calculate_optimal_ui_scale()
+            self.settings.setValue('ui_scale', optimal_scale)
+            ui_scale = optimal_scale
+        
+        self.config['ui_scale'] = ui_scale
         self.box_width = self.config['box_width'] * self.config['ui_scale'] * 0.8
         self.box_height = self.config['box_height'] * self.config['ui_scale'] * 0.8
 
@@ -283,6 +356,11 @@ class SETS():
                 'callback': lambda: self.switch_main_tab(3),
                 'stretch': 1,
                 'size': SMINMAX
+            },
+            'SHIP STATS': {
+                'callback': lambda: self.switch_main_tab(4),
+                'stretch': 1,
+                'size': SMINMAX
             }
         }
         center_buttons = self.create_button_series(center_button_group, 'heavy_button')
@@ -342,7 +420,7 @@ class SETS():
         build_tabber.setSizePolicy(SMINMIN)
         self.widgets.build_tabber = build_tabber
         build_tab_names = (
-                'space_build', 'ground_build', 'space_skills', 'ground_skills', 'library',
+                'space_build', 'ground_build', 'space_skills', 'ground_skills', 'ship_stats', 'library',
                 'settings')
         for tab_name in build_tab_names:
             tab_frame = self.create_frame()
@@ -350,6 +428,7 @@ class SETS():
             self.widgets.build_frames.append(tab_frame)
         content_layout.addWidget(build_tabber, 1, 1)
         self.setup_build_frames()
+        self.setup_ship_stats_frame()
         self.setup_settings_frame()
 
         content_frame.setLayout(content_layout)
@@ -825,6 +904,115 @@ class SETS():
         save_skills_button.clicked.connect(self.save_skills_callback)
         sidebar_layout.addWidget(save_skills_button, 2, 1, alignment=AHCENTER)
         sidebar_frame.setLayout(sidebar_layout)
+
+    def setup_ship_stats_frame(self):
+        """
+        Creates ship statistics display frame
+        """
+        frame = self.widgets.build_frames[4]  # ship_stats tab
+        isp = self.theme['defaults']['isp'] * self.config['ui_scale']
+        csp = self.theme['defaults']['csp'] * self.config['ui_scale']
+        
+        # Main layout
+        main_layout = GridLayout(margins=isp, spacing=isp)
+        main_layout.setColumnStretch(0, 1)
+        main_layout.setColumnStretch(2, 1)
+        
+        # Stats display area
+        stats_frame = self.create_frame(size_policy=SMINMIN)
+        stats_layout = VBoxLayout(margins=csp, spacing=csp)
+        
+        # Title
+        title_label = self.create_label('Ship Statistics', 'label_heading')
+        stats_layout.addWidget(title_label, alignment=AHCENTER)
+        
+        # Stats grid
+        stats_grid = GridLayout(spacing=csp)
+        stats_grid.setColumnStretch(1, 1)
+        
+        # Base ship stats
+        base_stats_label = self.create_label('Base Ship Stats:', 'label_subhead')
+        stats_grid.addWidget(base_stats_label, 0, 0, 1, 2, alignment=ALEFT)
+        
+        # Ship stat rows
+        self.widgets.ship_stats = {}
+        stat_names = [
+            'Hull', 'Shields', 'Turn Rate', 'Impulse', 'Inertia',
+            'Power Weapons', 'Power Shields', 'Power Engines', 'Power Auxiliary',
+            'Fore Weapons', 'Aft Weapons', 'Devices', 'Hangars'
+        ]
+        
+        for i, stat_name in enumerate(stat_names):
+            # Stat label
+            label = self.create_label(f'{stat_name}:')
+            stats_grid.addWidget(label, i + 1, 0, alignment=ALEFT)
+            
+            # Stat value
+            value_label = self.create_label('--', 'label_tooltip')
+            self.widgets.ship_stats[stat_name.lower().replace(' ', '_')] = value_label
+            stats_grid.addWidget(value_label, i + 1, 1, alignment=ARIGHT)
+        
+        # Separator
+        separator = self.create_frame(size_policy=SMAXMIN, style_override={
+            'background-color': '@sets', 'margin-top': '@isp', 'margin-bottom': '@isp'})
+        separator.setFixedHeight(self.theme['defaults']['sep'] * self.config['ui_scale'])
+        stats_layout.addWidget(separator)
+        
+        # Calculated stats
+        calc_stats_label = self.create_label('Calculated Stats:', 'label_subhead')
+        stats_grid.addWidget(calc_stats_label, len(stat_names) + 1, 0, 1, 2, alignment=ALEFT)
+        
+        # Calculated stat rows
+        calc_stat_names = [
+            'Total Hull', 'Total Shields', 'Total Turn Rate', 'Total Impulse',
+            'Total Power Weapons', 'Total Power Shields', 'Total Power Engines', 'Total Power Auxiliary'
+        ]
+        
+        for i, stat_name in enumerate(calc_stat_names):
+            # Stat label
+            label = self.create_label(f'{stat_name}:')
+            stats_grid.addWidget(label, len(stat_names) + i + 2, 0, alignment=ALEFT)
+            
+            # Stat value
+            value_label = self.create_label('--', 'label_tooltip')
+            self.widgets.ship_stats[f'calc_total_{stat_name.lower().replace(" ", "_")}'] = value_label
+            stats_grid.addWidget(value_label, len(stat_names) + i + 2, 1, alignment=ARIGHT)
+        
+        stats_layout.addLayout(stats_grid)
+        stats_frame.setLayout(stats_layout)
+        main_layout.addWidget(stats_frame, 0, 1)
+        
+        # Sidebar for additional info
+        sidebar_frame = self.create_frame(size_policy=SMINMIN)
+        sidebar_layout = VBoxLayout(margins=csp, spacing=csp)
+        
+        # Refresh button
+        refresh_button = self.create_button('Refresh Stats')
+        refresh_button.clicked.connect(self.refresh_ship_stats)
+        sidebar_layout.addWidget(refresh_button)
+        
+        # Stats info
+        info_label = self.create_label('Stats Information:', 'label_subhead')
+        sidebar_layout.addWidget(info_label)
+        
+        info_text = QPlainTextEdit()
+        info_text.setStyleSheet(self.get_style_class('QPlainTextEdit', 'textedit'))
+        info_text.setFont(self.theme_font('textedit'))
+        info_text.setReadOnly(True)
+        info_text.setPlainText(
+            "Ship statistics are calculated based on:\n"
+            "• Base ship stats from the selected ship\n"
+            "• Equipment bonuses and modifiers\n"
+            "• Trait effects and bonuses\n"
+            "• Skill tree bonuses\n\n"
+            "Click 'Refresh Stats' to update calculations."
+        )
+        sidebar_layout.addWidget(info_text)
+        
+        sidebar_frame.setLayout(sidebar_layout)
+        main_layout.addWidget(sidebar_frame, 0, 2)
+        
+        frame.setLayout(main_layout)
 
     def setup_ground_skill_frame(self):
         """

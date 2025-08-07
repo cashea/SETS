@@ -22,15 +22,16 @@ def switch_main_tab(self, index):
 
     Parameters:
     - :param index: index to switch to (0: space build, 1: ground build, 2: space skills,
-    3: ground skills, 4: library, 5: settings)
+    3: ground skills, 4: ship stats, 5: library, 6: settings)
     """
     CHAR_TAB_MAP = {
         0: 0,
         1: 0,
         2: 0,
         3: 0,
-        4: 1,
-        5: 2
+        4: 0,  # ship_stats - no character tab needed
+        5: 1,
+        6: 2
     }
     self.widgets.build_tabber.setCurrentIndex(index)
     self.widgets.sidebar_tabber.setCurrentIndex(index)
@@ -246,10 +247,16 @@ def picker(
                     if mod not in self.cache.modifiers[type_]:
                         new_item['modifiers'][i] = ''
             slot_equipment_item(self, new_item, environment, build_key, build_subkey)
+            # Auto-refresh ship stats when equipment is changed
+            if hasattr(self, 'refresh_ship_stats'):
+                self.refresh_ship_stats()
         else:
             if boff_id is None:
                 slot_trait_item(
                         self, {'item': new_item['item']}, environment, build_key, build_subkey)
+                # Auto-refresh ship stats when traits are changed
+                if hasattr(self, 'refresh_ship_stats'):
+                    self.refresh_ship_stats()
             elif build_key == 'boffs':
                 self.build[environment]['boffs'][boff_id][build_subkey] = {
                     'item': new_item['item']
@@ -344,6 +351,9 @@ def select_ship(self):
         self.widgets.ship['dc'].hide()
     align_space_frame(self, ship_data, clear=True)
     self.building = False
+    # Auto-refresh ship stats when ship is selected
+    if hasattr(self, 'refresh_ship_stats'):
+        self.refresh_ship_stats()
     self.autosave()
 
 
@@ -838,3 +848,268 @@ def skill_callback_ground(self, skill_group: int, skill_id: int):
                 toggle_ground_skill(self, skill_active, skill_group, skill_id)
             elif (skill_id == 2 or skill_id == 4) and self.build['ground_skills'][skill_group][0]:
                 toggle_ground_skill(self, skill_active, skill_group, skill_id)
+
+
+def refresh_ship_stats(self):
+    """
+    Calculates and displays ship statistics based on selected ship and equipment.
+    """
+    try:
+        # Get selected ship
+        ship_name = self.build['space'].get('ship', '')
+        
+        if not ship_name or ship_name not in self.cache.ships:
+            # Clear all stats if no ship selected
+            for stat_widget in self.widgets.ship_stats.values():
+                stat_widget.setText('--')
+            return
+        
+        ship_data = self.cache.ships[ship_name]
+        
+        # Base ship stats
+        base_stats = {
+            'hull': ship_data.get('hull', 0) or 0,
+            'shields': ship_data.get('shieldmod', 1.0) or 1.0,
+            'turn_rate': ship_data.get('turnrate', 0) or 0,
+            'impulse': ship_data.get('impulse', 0) or 0,
+            'inertia': ship_data.get('inertia', 0) or 0,
+            'power_weapons': ship_data.get('powerweapons', 0) or 0,
+            'power_shields': ship_data.get('powershields', 0) or 0,
+            'power_engines': ship_data.get('powerengines', 0) or 0,
+            'power_auxiliary': ship_data.get('powerauxiliary', 0) or 0,
+            'fore_weapons': ship_data.get('fore', 0) or 0,
+            'aft_weapons': ship_data.get('aft', 0) or 0,
+            'devices': ship_data.get('devices', 0) or 0,
+            'hangars': ship_data.get('hangars', 0) or 0
+        }
+        
+        # Display base stats
+        for stat_name, value in base_stats.items():
+            widget_key = stat_name.replace('_', '_')
+            if widget_key in self.widgets.ship_stats:
+                if isinstance(value, float):
+                    self.widgets.ship_stats[widget_key].setText(f"{value:.1f}")
+                else:
+                    self.widgets.ship_stats[widget_key].setText(str(value))
+        
+        # Calculate equipment bonuses
+        equipment_bonuses = self.calculate_equipment_bonuses()
+        print(f"Debug: Equipment bonuses: {equipment_bonuses}")
+        
+        # Calculate trait bonuses
+        trait_bonuses = self.calculate_trait_bonuses()
+        print(f"Debug: Trait bonuses: {trait_bonuses}")
+        
+        # Calculate skill bonuses
+        skill_bonuses = self.calculate_skill_bonuses()
+        print(f"Debug: Skill bonuses: {skill_bonuses}")
+        
+        # Combine all bonuses
+        total_bonuses = {}
+        for stat in base_stats.keys():
+            total_bonuses[stat] = (
+                equipment_bonuses.get(stat, 0) +
+                trait_bonuses.get(stat, 0) +
+                skill_bonuses.get(stat, 0)
+            )
+        print(f"Debug: Total bonuses: {total_bonuses}")
+        
+        # Calculate and display total stats
+        for stat_name, base_value in base_stats.items():
+            bonus = total_bonuses.get(stat_name, 0)
+            total_value = base_value + bonus
+            
+            calc_widget_key = f"calc_total_{stat_name.replace('_', '_')}"
+            if calc_widget_key in self.widgets.ship_stats:
+                if isinstance(total_value, float):
+                    self.widgets.ship_stats[calc_widget_key].setText(f"{total_value:.1f}")
+                else:
+                    self.widgets.ship_stats[calc_widget_key].setText(str(total_value))
+        
+        print(f"Ship stats refreshed for: {ship_name}")
+        
+    except Exception as e:
+        print(f"Error refreshing ship stats: {e}")
+
+
+def calculate_equipment_bonuses(self):
+    """
+    Calculate bonuses from equipped items.
+    """
+    bonuses = {}
+    
+    try:
+        # Check each equipment slot for bonuses
+        equipment_categories = [
+            'fore_weapons', 'aft_weapons', 'devices', 'deflector', 'engines', 
+            'core', 'shield', 'tac_consoles', 'eng_consoles', 'sci_consoles', 'uni_consoles'
+        ]
+        
+        print(f"Debug: Checking equipment in build: {self.build['space'].keys()}")
+        
+        for category in equipment_categories:
+            if category in self.build['space']:
+                print(f"Debug: Checking category {category}: {self.build['space'][category]}")
+                for item_data in self.build['space'][category]:
+                    if item_data and isinstance(item_data, dict) and 'item' in item_data:
+                        item_name = item_data['item']
+                        print(f"Debug: Found item {item_name} in {category}")
+                        if item_name in self.cache.equipment.get(category, {}):
+                            item_info = self.cache.equipment[category][item_name]
+                            # Parse tooltip for stat bonuses
+                            item_bonuses = self._parse_equipment_bonuses(item_info)
+                            print(f"Debug: Item {item_name} bonuses: {item_bonuses}")
+                            bonuses.update(item_bonuses)
+        
+        return bonuses
+        
+    except Exception as e:
+        print(f"Error calculating equipment bonuses: {e}")
+        return bonuses
+
+def _parse_equipment_bonuses(self, item_info):
+    """
+    Parse equipment tooltip to extract stat bonuses.
+    """
+    bonuses = {}
+    
+    try:
+        # Get the raw item data that was preserved during loading
+        if 'raw_data' in item_info:
+            raw_data = item_info['raw_data']
+            print(f"Debug: Parsing raw data for {item_info.get('name', 'unknown')}")
+            
+            # Extract bonuses from head and text fields
+            for i in range(1, 10):
+                head_key = f'head{i}'
+                text_key = f'text{i}'
+                
+                if head_key in raw_data and raw_data[head_key]:
+                    head_text = raw_data[head_key]
+                    text_content = raw_data.get(text_key, '')
+                    
+                    # Parse common stat patterns
+                    bonuses.update(self._parse_stat_text(head_text, text_content))
+        else:
+            print(f"Debug: No raw_data found for item {item_info.get('name', 'unknown')}")
+        
+        return bonuses
+        
+    except Exception as e:
+        print(f"Error parsing equipment bonuses for {item_info.get('name', 'unknown')}: {e}")
+        return bonuses
+
+def _parse_stat_text(self, head_text, text_content):
+    """
+    Parse text content for stat bonuses.
+    """
+    bonuses = {}
+    
+    # Common stat patterns to look for
+    stat_patterns = {
+        'hull': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?hull',
+        'shields': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?shield',
+        'turn_rate': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?turn\s+rate',
+        'impulse': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?impulse',
+        'power_weapons': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?weapon\s+power',
+        'power_shields': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?shield\s+power',
+        'power_engines': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?engine\s+power',
+        'power_auxiliary': r'(\+?\d+(?:\.\d+)?)\s*(?:percent\s+)?auxiliary\s+power'
+    }
+    
+    # Combine head and text content for parsing
+    full_text = f"{head_text} {text_content}".lower()
+    
+    for stat_name, pattern in stat_patterns.items():
+        import re
+        matches = re.findall(pattern, full_text)
+        if matches:
+            try:
+                # Take the first match and convert to float
+                value = float(matches[0])
+                bonuses[stat_name] = value
+            except (ValueError, IndexError):
+                pass
+    
+    return bonuses
+
+
+def calculate_trait_bonuses(self):
+    """
+    Calculate bonuses from selected traits.
+    """
+    bonuses = {}
+    
+    try:
+        # Check personal traits
+        if 'traits' in self.build['space']:
+            for trait_data in self.build['space']['traits']:
+                if trait_data and isinstance(trait_data, dict) and 'item' in trait_data:
+                    trait_name = trait_data['item']
+                    # Parse personal trait effects
+                    trait_bonuses = self._parse_trait_bonuses(trait_name, 'personal')
+                    for stat, bonus in trait_bonuses.items():
+                        bonuses[stat] = bonuses.get(stat, 0) + bonus
+        
+        # Check starship traits
+        if 'starship_traits' in self.build['space']:
+            for trait_data in self.build['space']['starship_traits']:
+                if trait_data and isinstance(trait_data, dict) and 'item' in trait_data:
+                    trait_name = trait_data['item']
+                    # Parse starship trait effects
+                    trait_bonuses = self._parse_trait_bonuses(trait_name, 'starship')
+                    for stat, bonus in trait_bonuses.items():
+                        bonuses[stat] = bonuses.get(stat, 0) + bonus
+        
+        return bonuses
+        
+    except Exception as e:
+        print(f"Error calculating trait bonuses: {e}")
+        return bonuses
+
+def _parse_trait_bonuses(self, trait_name, trait_type):
+    """
+    Parse trait effects for stat bonuses.
+    """
+    bonuses = {}
+    
+    try:
+        if trait_type == 'personal':
+            # Look in personal traits
+            for env in ['space', 'ground']:
+                if trait_name in self.cache.traits.get(env, {}).get('personal', {}):
+                    trait_info = self.cache.traits[env]['personal'][trait_name]
+                    # Parse trait description for bonuses
+                    if 'tooltip' in trait_info:
+                        bonuses.update(self._parse_stat_text('', trait_info['tooltip']))
+                    break
+        elif trait_type == 'starship':
+            # Look in starship traits
+            if trait_name in self.cache.starship_traits:
+                trait_info = self.cache.starship_traits[trait_name]
+                # Parse trait description for bonuses
+                if 'tooltip' in trait_info:
+                    bonuses.update(self._parse_stat_text('', trait_info['tooltip']))
+        
+        return bonuses
+        
+    except Exception as e:
+        print(f"Error parsing trait bonuses for {trait_name}: {e}")
+        return bonuses
+
+
+def calculate_skill_bonuses(self):
+    """
+    Calculate bonuses from skill tree.
+    """
+    bonuses = {}
+    
+    try:
+        # Check space skills for relevant bonuses
+        # This would parse the skill tree data for relevant bonuses
+        # Simplified for now
+        return bonuses
+        
+    except Exception as e:
+        print(f"Error calculating skill bonuses: {e}")
+        return bonuses
