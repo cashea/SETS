@@ -361,10 +361,10 @@ def load_json(path: str) -> dict | list:
     Loads json from path and returns dictionary or list.
 
     Parameters:
-    - :param path: absolute path to json file
+    - :param path: path to json file (can be relative or absolute)
     """
-    if not (os.path.exists(path) and os.path.isfile(path) and os.path.isabs(path)):
-        raise FileNotFoundError(f'Invalid / not absolute path: {path}')
+    if not (os.path.exists(path) and os.path.isfile(path)):
+        raise FileNotFoundError(f'Invalid path or file does not exist: {path}')
     with open(path, 'r', encoding='utf-8') as file:
         data = json.load(file)
     return data
@@ -372,18 +372,17 @@ def load_json(path: str) -> dict | list:
 
 def store_json(data: dict | list, path: str):
     """
-    Stores data to json file at path. Overwrites file at target location. Raises ValueError if path
-    is not absolute.
+    Stores data to json file at path. Overwrites file at target location.
 
-    Paramters:
+    Parameters:
     - :param data: dictionary or list that should be stored
-    - :param path: target location; must be absolute path
+    - :param path: target location; can be relative or absolute path
     """
-    if not os.path.isabs(path):
-        raise ValueError(f'Path to file must be absolute: {path}')
     try:
-        with open(path, 'w') as file:
-            json.dump(data, file)
+        # Ensure the directory exists
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, 'w', encoding='utf-8') as file:
+            json.dump(data, file, ensure_ascii=False, indent=2)
     except OSError as e:
         sys.stdout.write(f'[Error] Data could not be saved: {e}')
 

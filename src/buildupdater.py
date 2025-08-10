@@ -513,8 +513,14 @@ def slot_trait_item(self, item: dict, environment: str, build_key: str, build_su
     """
     self.build[environment][build_key][build_subkey] = item
     item_image = image(self, item['item'])
+    try:
+        tooltip = get_tooltip(self, item['item'], build_key, environment)
+    except Exception as e:
+        # Fallback tooltip if there's an error getting the tooltip
+        tooltip = f'Tooltip not available for {item["item"]}'
+    
     self.widgets.build[environment][build_key][build_subkey].set_item_full(
-            item_image, None, get_tooltip(self, item['item'], build_key, environment))
+            item_image, None, tooltip)
 
 
 def set_skill_unlock_ground(self, id: int, state: int | None):

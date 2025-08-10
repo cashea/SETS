@@ -6,23 +6,27 @@ from .constants import CAREER_ABBR, RARITY_COLORS, SKILL_PREFIXES, WIKI_URL
 
 def get_tooltip(self, name: str, type_: str, environment: str = 'space') -> str:
     """
-    Returns tooltip for trait.
+    Gets tooltip for item from cache
 
     Parameters:
-    - :param name: name of the trait
-    - :param type_: type of the trait ("rep_traits", "traits", "starship_traits", ...)
-    - :param environment: "space" / "ground"
+    - :param name: name of the item
+    - :param type_: type of the item (rep_traits/traits/active_rep_traits/starship_traits)
+    - :param environment: space/ground
     """
-    if type_ == 'rep_traits':
-        return self.cache.traits[environment]['rep'][name]['tooltip']
-    elif type_ == 'traits':
-        return self.cache.traits[environment]['personal'][name]['tooltip']
-    elif type_ == 'active_rep_traits':
-        return self.cache.traits[environment]['active_rep'][name]['tooltip']
-    elif type_ == 'starship_traits':
-        return self.cache.starship_traits[name]['tooltip']
-    else:
-        return 'Something is wrong!'
+    try:
+        if type_ == 'rep_traits':
+            return self.cache.traits[environment]['rep'][name]['tooltip']
+        elif type_ == 'traits':
+            return self.cache.traits[environment]['personal'][name]['tooltip']
+        elif type_ == 'active_rep_traits':
+            return self.cache.traits[environment]['active_rep'][name]['tooltip']
+        elif type_ == 'starship_traits':
+            return self.cache.starship_traits[name]['tooltip']
+        else:
+            return 'Something is wrong!'
+    except KeyError:
+        # Return a default tooltip if the trait/item is not found in cache
+        return f'Tooltip not available for {name}'
 
 
 def add_equipment_tooltip_header(self, item: dict, tooltip_body: str, item_type: str) -> str:

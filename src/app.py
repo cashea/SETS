@@ -10,7 +10,7 @@ from .constants import (
     PRIMARY_SPECS, RARITIES, SCROLLOFF, SCROLLON, SECONDARY_SPECS, SMAXMAX, SMAXMIN, SMINMAX,
     SMINMIN)
 from .iofunc import (
-        create_folder, delete_folder_contents, get_asset_path, load_icon, open_url, store_json)
+        create_folder, delete_folder_contents, get_asset_path, load_icon, open_url, open_wiki_page, store_json)
 from .subwindows import ExportWindow, ItemEditor, Picker, ShipSelector
 from .widgets import (
     Cache, ContextMenu, GridLayout, HBoxLayout, ImageLabel, ShipButton, ShipImage, TooltipLabel,
@@ -368,6 +368,7 @@ class SETS():
         menu_layout.addLayout(center_buttons, 0, 1)
         right_button_group = {
             'Export': {'callback': self.export_window.invoke},
+            'Wiki': {'callback': lambda: open_wiki_page('')},
             'Settings': {'callback': lambda: self.switch_main_tab(5)},
         }
         menu_layout.addLayout(self.create_button_series(right_button_group), 0, 2, ARIGHT | ATOP)

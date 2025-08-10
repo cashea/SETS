@@ -203,7 +203,7 @@ class MediaWikiAPI:
         if where_conditions:
             where_clause = ' AND '.join(where_conditions)
         
-        return self.get_cargo_data('Infobox', fields, where_clause)
+        return self.get_cargo_data('Infobox', fields, where_clause, limit=5000)
     
     def get_traits_data(self, trait_type: Optional[str] = None,
                        environment: Optional[str] = None) -> List[Dict[str, Any]]:
