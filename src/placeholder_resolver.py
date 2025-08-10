@@ -155,8 +155,11 @@ class PlaceholderResolver:
             if not page_content:
                 return placeholder_text
             
+            # Convert BeautifulSoup object to text
+            page_text = page_content.get_text() if hasattr(page_content, 'get_text') else str(page_content)
+            
             # Try to find the actual value in the page content
-            resolved_value = self._extract_value_from_content(page_content, placeholder_text, rarity)
+            resolved_value = self._extract_value_from_content(page_text, placeholder_text, rarity)
             
             if resolved_value:
                 # Replace the placeholder with the resolved value
@@ -185,17 +188,7 @@ class PlaceholderResolver:
         """
         import re
         
-        # Define rarity-based value ranges
-        rarity_values = {
-            'Common': {'min': 5, 'max': 15},
-            'Uncommon': {'min': 8, 'max': 20},
-            'Rare': {'min': 12, 'max': 25},
-            'Very Rare': {'min': 15, 'max': 30},
-            'Ultra Rare': {'min': 20, 'max': 35}
-        }
-        
-        # Get value range for this rarity
-        value_range = rarity_values.get(rarity, {'min': 10, 'max': 20})
+        # Only use data sourced from the wiki - no fallback defaults
         
         # Look for turn rate patterns in the content
         if 'turn rate' in placeholder_text.lower():
@@ -210,18 +203,63 @@ class PlaceholderResolver:
             for pattern in patterns:
                 matches = re.findall(pattern, content, re.IGNORECASE)
                 if matches:
-                    # Use the first match that's within our expected range
+                    # Use the first match found (no range validation - use actual wiki data)
                     for match in matches:
                         try:
                             value = float(match)
-                            if value_range['min'] <= value <= value_range['max']:
-                                return str(value)
+                            return str(value)
                         except ValueError:
                             continue
             
-            # If no exact match found, use a reasonable default based on rarity
-            default_value = (value_range['min'] + value_range['max']) / 2
-            return f"{default_value:.1f}"
+            # No match found in wiki content - return None to keep original placeholder
+            return None
+        
+        # Look for flight speed patterns in the content
+        elif 'flight speed' in placeholder_text.lower():
+            # Look for percentage patterns like "15% Flight Speed"
+            patterns = [
+                r'(\d+(?:\.\d+)?)\s*%\s*Flight\s*Speed',
+                r'(\d+(?:\.\d+)?)\s*%\s*Speed',
+                r'Speed.*?(\d+(?:\.\d+)?)\s*%',
+                r'(\d+(?:\.\d+)?)\s*%\s*.*?Speed'
+            ]
+            
+            for pattern in patterns:
+                matches = re.findall(pattern, content, re.IGNORECASE)
+                if matches:
+                    # Use the first match found (no range validation - use actual wiki data)
+                    for match in matches:
+                        try:
+                            value = float(match)
+                            return str(value)
+                        except ValueError:
+                            continue
+            
+            # No match found in wiki content - return None to keep original placeholder
+            return None
+        
+        # Look for shield patterns in the content
+        elif 'shield' in placeholder_text.lower():
+            # Look for percentage patterns like "15% Shield"
+            patterns = [
+                r'(\d+(?:\.\d+)?)\s*%\s*Shield',
+                r'Shield.*?(\d+(?:\.\d+)?)\s*%',
+                r'(\d+(?:\.\d+)?)\s*%\s*.*?Shield'
+            ]
+            
+            for pattern in patterns:
+                matches = re.findall(pattern, content, re.IGNORECASE)
+                if matches:
+                    # Use the first match found (no range validation - use actual wiki data)
+                    for match in matches:
+                        try:
+                            value = float(match)
+                            return str(value)
+                        except ValueError:
+                            continue
+            
+            # No match found in wiki content - return None to keep original placeholder
+            return None
         
         # Add more placeholder types here as needed
         return None

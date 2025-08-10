@@ -490,7 +490,14 @@ class MediaWikiAPI:
         
         for ship in ships_data:
             if 'type' in ship and ship['type']:
-                ship_types.add(ship['type'])
+                ship_type = ship['type']
+                # Handle case where ship_type might be a list
+                if isinstance(ship_type, list):
+                    for st in ship_type:
+                        if st:  # Only add non-empty values
+                            ship_types.add(str(st))
+                else:
+                    ship_types.add(str(ship_type))
         
         return sorted(list(ship_types))
     
@@ -506,7 +513,14 @@ class MediaWikiAPI:
         
         for ship in ships_data:
             if 'fc' in ship and ship['fc']:
-                factions.add(ship['fc'])
+                faction = ship['fc']
+                # Handle case where faction might be a list
+                if isinstance(faction, list):
+                    for f in faction:
+                        if f:  # Only add non-empty values
+                            factions.add(str(f))
+                else:
+                    factions.add(str(faction))
         
         return sorted(list(factions))
     
@@ -522,7 +536,14 @@ class MediaWikiAPI:
         
         for ship in ships_data:
             if 'tier' in ship and ship['tier']:
-                tiers.add(ship['tier'])
+                tier = ship['tier']
+                # Handle case where tier might be a list
+                if isinstance(tier, list):
+                    for t in tier:
+                        if t:  # Only add non-empty values
+                            tiers.add(str(t))
+                else:
+                    tiers.add(str(tier))
         
         return sorted(list(tiers), key=lambda x: int(x) if x.isdigit() else 0)
 

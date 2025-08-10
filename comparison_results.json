@@ -1,0 +1,18 @@
+{
+  "api_results": {
+    "ships": 772,
+    "raider_ships": 0,
+    "equipment": 3880,
+    "ship_types": 44,
+    "factions": 1,
+    "tiers": 6,
+    "time": 0.07912945747375488
+  },
+  "scraping_results": {
+    "raider_ships": 196,
+    "bird_of_prey_ships": 3,
+    "icons_downloaded": 21,
+    "time": 2.746155023574829
+  },
+  "recommendation": "Use MediaWiki API for better performance and reliability"
+}

@@ -5335,7 +5335,7 @@
     },
     {
       "Ship": "acd",
-      "Rank": "Legendary Columbia Temporal Operative Escort",
+      "Rank": "LegendaryColumbiaTemporal Operative Escort",
       "Tier": "1",
       "Hull": "6",
       "Uni": "41400",
@@ -5443,7 +5443,7 @@
     },
     {
       "Ship": "acd",
-      "Rank": "NX Escort Refit",
+      "Rank": "NXEscort Refit",
       "Tier": "1",
       "Hull": "6",
       "Uni": "38813",
@@ -8830,7 +8830,7 @@
     },
     {
       "Ship": "acd",
-      "Rank": "Legendary Columbia Temporal Operative Escort",
+      "Rank": "LegendaryColumbiaTemporal Operative Escort",
       "Tier": "1",
       "Hull": "6",
       "Uni": "41400",
@@ -8938,7 +8938,7 @@
     },
     {
       "Ship": "acd",
-      "Rank": "NX Escort Refit",
+      "Rank": "NXEscort Refit",
       "Tier": "1",
       "Hull": "6",
       "Uni": "38813",
