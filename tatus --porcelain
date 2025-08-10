@@ -1,0 +1,1829 @@
+[1mdiff --git a/async_ships.json b/async_ships.json[m
+[1mindex afa8f61..0bdb803 100644[m
+[1m--- a/async_ships.json[m
+[1m+++ b/async_ships.json[m
+[36m@@ -5335,7 +5335,7 @@[m
+     },[m
+     {[m
+       "Ship": "acd",[m
+[31m-      "Rank": "Legendary Columbia Temporal Operative Escort",[m
+[32m+[m[32m      "Rank": "LegendaryColumbiaTemporal Operative Escort",[m
+       "Tier": "1",[m
+       "Hull": "6",[m
+       "Uni": "41400",[m
+[36m@@ -5443,7 +5443,7 @@[m
+     },[m
+     {[m
+       "Ship": "acd",[m
+[31m-      "Rank": "NX Escort Refit",[m
+[32m+[m[32m      "Rank": "NXEscort Refit",[m
+       "Tier": "1",[m
+       "Hull": "6",[m
+       "Uni": "38813",[m
+[36m@@ -8830,7 +8830,7 @@[m
+     },[m
+     {[m
+       "Ship": "acd",[m
+[31m-      "Rank": "Legendary Columbia Temporal Operative Escort",[m
+[32m+[m[32m      "Rank": "LegendaryColumbiaTemporal Operative Escort",[m
+       "Tier": "1",[m
+       "Hull": "6",[m
+       "Uni": "41400",[m
+[36m@@ -8938,7 +8938,7 @@[m
+     },[m
+     {[m
+       "Ship": "acd",[m
+[31m-      "Rank": "NX Escort Refit",[m
+[32m+[m[32m      "Rank": "NXEscort Refit",[m
+       "Tier": "1",[m
+       "Hull": "6",[m
+       "Uni": "38813",[m
+[1mdiff --git a/comparison_results.json b/comparison_results.json[m
+[1mnew file mode 100644[m
+[1mindex 0000000..88363e9[m
+[1m--- /dev/null[m
+[1m+++ b/comparison_results.json[m
+[36m@@ -0,0 +1,18 @@[m
+[32m+[m[32m{[m
+[32m+[m[32m  "api_results": {[m
+[32m+[m[32m    "ships": 772,[m
+[32m+[m[32m    "raider_ships": 0,[m
+[32m+[m[32m    "equipment": 3880,[m
+[32m+[m[32m    "ship_types": 44,[m
+[32m+[m[32m    "factions": 1,[m
+[32m+[m[32m    "tiers": 6,[m
+[32m+[m[32m    "time": 0.07912945747375488[m
+[32m+[m[32m  },[m
+[32m+[m[32m  "scraping_results": {[m
+[32m+[m[32m    "raider_ships": 196,[m
+[32m+[m[32m    "bird_of_prey_ships": 3,[m
+[32m+[m[32m    "icons_downloaded": 21,[m
+[32m+[m[32m    "time": 2.746155023574829[m
+[32m+[m[32m  },[m
+[32m+[m[32m  "recommendation": "Use MediaWiki API for better performance and reliability"[m
+[32m+[m[32m}[m
+\ No newline at end of file[m
+[1mdiff --git a/src/mediawiki_api.py b/src/mediawiki_api.py[m
+[1mindex c293c45..f0d5c28 100644[m
+[1m--- a/src/mediawiki_api.py[m
+[1m+++ b/src/mediawiki_api.py[m
+[36m@@ -490,7 +490,14 @@[m [mclass MediaWikiAPI:[m
+         [m
+         for ship in ships_data:[m
+             if 'type' in ship and ship['type']:[m
+[31m-                ship_types.add(ship['type'])[m
+[32m+[m[32m                ship_type = ship['type'][m
+[32m+[m[32m                # Handle case where ship_type might be a list[m
+[32m+[m[32m                if isinstance(ship_type, list):[m
+[32m+[m[32m                    for st in ship_type:[m
+[32m+[m[32m                        if st:  # Only add non-empty values[m
+[32m+[m[32m                            ship_types.add(str(st))[m
+[32m+[m[32m                else:[m
+[32m+[m[32m                    ship_types.add(str(ship_type))[m
+         [m
+         return sorted(list(ship_types))[m
+     [m
+[36m@@ -506,7 +513,14 @@[m [mclass MediaWikiAPI:[m
+         [m
+         for ship in ships_data:[m
+             if 'fc' in ship and ship['fc']:[m
+[31m-                factions.add(ship['fc'])[m
+[32m+[m[32m                faction = ship['fc'][m
+[32m+[m[32m                # Handle case where faction might be a list[m
+[32m+[m[32m                if isinstance(faction, list):[m
+[32m+[m[32m                    for f in faction:[m
+[32m+[m[32m                        if f:  # Only add non-empty values[m
+[32m+[m[32m                            factions.add(str(f))[m
+[32m+[m[32m                else:[m
+[32m+[m[32m                    factions.add(str(faction))[m
+         [m
+         return sorted(list(factions))[m
+     [m
+[36m@@ -522,7 +536,14 @@[m [mclass MediaWikiAPI:[m
+         [m
+         for ship in ships_data:[m
+             if 'tier' in ship and ship['tier']:[m
+[31m-                tiers.add(ship['tier'])[m
+[32m+[m[32m                tier = ship['tier'][m
+[32m+[m[32m                # Handle case where tier might be a list[m
+[32m+[m[32m                if isinstance(tier, list):[m
+[32m+[m[32m                    for t in tier:[m
+[32m+[m[32m                        if t:  # Only add non-empty values[m
+[32m+[m[32m                            tiers.add(str(t))[m
+[32m+[m[32m                else:[m
+[32m+[m[32m                    tiers.add(str(tier))[m
+         [m
+         return sorted(list(tiers), key=lambda x: int(x) if x.isdigit() else 0)[m
+ [m
+[1mdiff --git a/src/placeholder_resolver.py b/src/placeholder_resolver.py[m
+[1mindex f5cf110..d501209 100644[m
+[1m--- a/src/placeholder_resolver.py[m
+[1m+++ b/src/placeholder_resolver.py[m
+[36m@@ -155,8 +155,11 @@[m [mclass PlaceholderResolver:[m
+             if not page_content:[m
+                 return placeholder_text[m
+             [m
+[32m+[m[32m            # Convert BeautifulSoup object to text[m
+[32m+[m[32m            page_text = page_content.get_text() if hasattr(page_content, 'get_text') else str(page_content)[m
+[32m+[m[41m            [m
+             # Try to find the actual value in the page content[m
+[31m-            resolved_value = self._extract_value_from_content(page_content, placeholder_text, rarity)[m
+[32m+[m[32m            resolved_value = self._extract_value_from_content(page_text, placeholder_text, rarity)[m
+             [m
+             if resolved_value:[m
+                 # Replace the placeholder with the resolved value[m
+[36m@@ -185,17 +188,7 @@[m [mclass PlaceholderResolver:[m
+         """[m
+         import re[m
+         [m
+[31m-        # Define rarity-based value ranges[m
+[31m-        rarity_values = {[m
+[31m-            'Common': {'min': 5, 'max': 15},[m
+[31m-            'Uncommon': {'min': 8, 'max': 20},[m
+[31m-            'Rare': {'min': 12, 'max': 25},[m
+[31m-            'Very Rare': {'min': 15, 'max': 30},[m
+[31m-            'Ultra Rare': {'min': 20, 'max': 35}[m
+[31m-        }[m
+[31m-        [m
+[31m-        # Get value range for this rarity[m
+[31m-        value_range = rarity_values.get(rarity, {'min': 10, 'max': 20})[m
+[32m+[m[32m        # Only use data sourced from the wiki - no fallback defaults[m
+         [m
+         # Look for turn rate patterns in the content[m
+         if 'turn rate' in placeholder_text.lower():[m
+[36m@@ -210,18 +203,63 @@[m [mclass PlaceholderResolver:[m
+             for pattern in patterns:[m
+                 matches = re.findall(pattern, content, re.IGNORECASE)[m
+                 if matches:[m
+[31m-                    # Use the first match that's within our expected range[m
+[32m+[m[32m                    # Use the first match found (no range validation - use actual wiki data)[m
+[32m+[m[32m                    for match in matches:[m
+[32m+[m[32m                        try:[m
+[32m+[m[32m                            value = float(match)[m
+[32m+[m[32m                            return str(value)[m
+[32m+[m[32m                        except ValueError:[m
+[32m+[m[32m                            continue[m
+[32m+[m[41m            [m
+[32m+[m[32m            # No match found in wiki content - return None to keep original placeholder[m
+[32m+[m[32m            return None[m
+[32m+[m[41m        [m
+[32m+[m[32m        # Look for flight speed patterns in the content[m
+[32m+[m[32m        elif 'flight speed' in placeholder_text.lower():[m
+[32m+[m[32m            # Look for percentage patterns like "15% Flight Speed"[m
+[32m+[m[32m            patterns = [[m
+[32m+[m[32m                r'(\d+(?:\.\d+)?)\s*%\s*Flight\s*Speed',[m
+[32m+[m[32m                r'(\d+(?:\.\d+)?)\s*%\s*Speed',[m
+[32m+[m[32m                r'Speed.*?(\d+(?:\.\d+)?)\s*%',[m
+[32m+[m[32m                r'(\d+(?:\.\d+)?)\s*%\s*.*?Speed'[m
+[32m+[m[32m            ][m
+[32m+[m[41m            [m
+[32m+[m[32m            for pattern in patterns:[m
+[32m+[m[32m                matches = re.findall(pattern, content, re.IGNORECASE)[m
+[32m+[m[32m                if matches:[m
+[32m+[m[32m                    # Use the first match found (no range validation - use actual wiki data)[m
+[32m+[m[32m                    for match in matches:[m
+[32m+[m[32m                        try:[m
+[32m+[m[32m                            value = float(match)[m
+[32m+[m[32m                            return str(value)[m
+[32m+[m[32m                        except ValueError:[m
+[32m+[m[32m                            continue[m
+[32m+[m[41m            [m
+[32m+[m[32m            # No match found in wiki content - return None to keep original placeholder[m
+[32m+[m[32m            return None[m
+[32m+[m[41m        [m
+[32m+[m[32m        # Look for shield patterns in the content[m
+[32m+[m[32m        elif 'shield' in placeholder_text.lower():[m
+[32m+[m[32m            # Look for percentage patterns like "15% Shield"[m
+[32m+[m[32m            patterns = [[m
+[32m+[m[32m                r'(\d+(?:\.\d+)?)\s*%\s*Shield',[m
+[32m+[m[32m                r'Shield.*?(\d+(?:\.\d+)?)\s*%',[m
+[32m+[m[32m                r'(\d+(?:\.\d+)?)\s*%\s*.*?Shield'[m
+[32m+[m[32m            ][m
+[32m+[m[41m            [m
+[32m+[m[32m            for pattern in patterns:[m
+[32m+[m[32m                matches = re.findall(pattern, content, re.IGNORECASE)[m
+[32m+[m[32m                if matches:[m
+[32m+[m[32m                    # Use the first match found (no range validation - use actual wiki data)[m
+                     for match in matches:[m
+                         try:[m
+                             value = float(match)[m
+[31m-                            if value_range['min'] <= value <= value_range['max']:[m
+[31m-                                return str(value)[m
+[32m+[m[32m                            return str(value)[m
+                         except ValueError:[m
+                             continue[m
+             [m
+[31m-            # If no exact match found, use a reasonable default based on rarity[m
+[31m-            default_value = (value_range['min'] + value_range['max']) / 2[m
+[31m-            return f"{default_value:.1f}"[m
+[32m+[m[32m            # No match found in wiki content - return None to keep original placeholder[m
+[32m+[m[32m            return None[m
+         [m
+         # Add more placeholder types here as needed[m
+         return None[m
+[1mdiff --git a/test_cache_api/api_data/equipment_all_all.json b/test_cache_api/api_data/equipment_all_all.json[m
+[1mnew file mode 100644[m
+[1mindex 0000000..838abda[m
+[1m--- /dev/null[m
+[1m+++ b/test_cache_api/api_data/equipment_all_all.json[m
+[36m@@ -0,0 +1,139682 @@[m
+[32m+[m[32m[[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;Avalanche&quot;",[m
+[32m+[m[32m    "name": "&amp;#34;Avalanche&amp;#34;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Snow Boulder",[m
+[32m+[m[32m    "head2": "Snow Explosion",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen\n:Damages Snowmen. Deals damage to your target in a single large burst.",[m
+[32m+[m[32m    "text2": "Damages Snowmen\n:Damages Snowmen. Deals a large amount of damage to your target, and all targets near the impact site.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;Flurry&quot;",[m
+[32m+[m[32m    "name": "&amp;#34;Flurry&amp;#34;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Full Auto Quick Fire",[m
+[32m+[m[32m    "head2": "Full Auto Avalanche",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen\n:Damages Snowmen. Deals a small amount of damage in 3 short bursts.",[m
+[32m+[m[32m    "text2": "Damages Snowmen\n:Damages Snowmen. Deals a small amount of damage to all targets in a narrow frontal cone.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;Freezing Mist&quot;",[m
+[32m+[m[32m    "name": "&amp;#34;Freezing Mist&amp;#34;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "character",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Freeze Ray",[m
+[32m+[m[32m    "head2": "Freezing Beams",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Freezing Beam\n: Damages Snowmen. Deals damage over a few seconds to one target at short range.",[m
+[32m+[m[32m    "text2": "Cone AoE Damage\n: Damages Snowmen. Deals heavy damage to several targets in a wide cone in front of you.\n: 6 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;Hail&quot;",[m
+[32m+[m[32m    "name": "&amp;#34;Hail&amp;#34;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Snowball Pistol Dual",[m
+[32m+[m[32m    "head2": "Full Auto Avalanche",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen\n:Damages Snowmen. Deals a moderate amount of damage to your target.",[m
+[32m+[m[32m    "text2": "Expose Attack",[m
+[32m+[m[32m    "text3": "Damages Snowmen\n:Damages Snowmen. Deals a large amount of damage to all enemies in a cone centered on your target.",[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;Improvise&quot;",[m
+[32m+[m[32m    "name": "&quot;Improvise&quot;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Throw Carrot",[m
+[32m+[m[32m    "head2": "Carrot Fan",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Single Target Ranged Attack\n:If player targeted:\n:* Slight increase to Run Speed, but Traction is reduced.\n:* The target of your snowball will receive a half-melted one they can throw at a target of their choosing (Lasts 5 minutes before melting)\n:If snowman targeted:\n:* Deals damage. (Snowballs seem to be the only &quot;weaponry&quot; that affects them.)",[m
+[32m+[m[32m    "text2": "Targetted Cone AoE Damage\n:If player targeted:\n:* Slight increase to Run Speed, but Traction is reduced.\n:* The target of your snowball will receive a half-melted one they can throw at a target of their choosing (Lasts 5 minutes before melting)\n:If snowman targeted:\n:* Deals damage. (Snowballs seem to be the only &quot;weaponry&quot; that affects them.)",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;NX-&quot; Registry Prefix Unlock",[m
+[32m+[m[32m    "name": "&quot;NX-&quot; Registry Prefix Unlock",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "{{{type}}}",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": null,[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;The Big One&quot;",[m
+[32m+[m[32m    "name": "&amp;#34;The Big One&amp;#34;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Gummy Blast",[m
+[32m+[m[32m    "head2": "Explosive Blast",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen\n:Damages Snowmen. Deals a moderate amount of damage to all targets in front of you.",[m
+[32m+[m[32m    "text2": "Damages Snowmen\n:Damages Snowmen. Deals a moderate amount of damage to all targets in front of you.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;The Impaler&quot;",[m
+[32m+[m[32m    "name": "&amp;#34;The Impaler&amp;#34;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Icicle Bolt",[m
+[32m+[m[32m    "head2": "Icicle Blast",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen\n:Deals damage to one target at a good range.",[m
+[32m+[m[32m    "text2": "Damages Snowmen\n:Deals heavy damage to one target at a long range.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;The Snowblower&quot;",[m
+[32m+[m[32m    "name": "&amp;#34;The Snowblower&amp;#34;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Snowball Barrage",[m
+[32m+[m[32m    "head2": "Explosive Blast",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen\n:Damages Snowmen. Deals a moderate amount of damage to a single target.",[m
+[32m+[m[32m    "text2": "Damages Snowmen\n:Damages Snowmen. Deals a large amount of damage to all targets in front of you.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;Unrestricted Aggression&quot;",[m
+[32m+[m[32m    "name": "&quot;Unrestricted Aggression&quot;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "character",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Foam Dart Burst",[m
+[32m+[m[32m    "head2": "Foam Dart Power Shot",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen\n:Deals a moderate amount of damage to your target.\n:0.5 sec recharge",[m
+[32m+[m[32m    "text2": "Damages Snowmen\n:Deals heavy damage to one target at a long range.\n:8 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "&quot;Vine&quot;",[m
+[32m+[m[32m    "name": "&quot;Vine&quot;",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "character",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Licorice Smack",[m
+[32m+[m[32m    "head2": "Licorice Barrage",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Damages Snowmen",[m
+[32m+[m[32m    "text2": "Damages Snowmen",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "1 Hour Skill Bonus",[m
+[32m+[m[32m    "name": "1 Hour Skill Bonus",[m
+[32m+[m[32m    "rarity": "Uncommon",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "+20% Skill Points and Bridge Officer Skill Points for 1 hour",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "10,000 CXP Bonus Pool",[m
+[32m+[m[32m    "name": "10,000 CXP Bonus Pool",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Duty Officer Commendation Experience points until you have earned a total of 10,000 additional Commendation Points.",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "10,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "name": "10,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Fleet Credits during play until a total of 10,000 additional Fleet Credits.",[m
+[32m+[m[32m    "text2": "Bonus Fleet Credits granted by this boost do not apply to your leaderboard status.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "10,000 R&amp;D Research XP Bonus Pool",[m
+[32m+[m[32m    "name": "10,000 R&amp;D Research XP Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Research XP until you have earned a total of 10,000 Research XP",[m
+[32m+[m[32m    "text2": "This bonus applies to Research XP from all R&amp;D Schools",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "100 Fleet Mark Bonus Pool",[m
+[32m+[m[32m    "name": "100 Fleet Mark Bonus Pool",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Fleet Marks until you have earned a total of 100 additional Fleet Marks. (Minimum bonus of 1 Fleet Mark, every time at least one is earned.)",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "100 Reputation Mark Bonus Pool",[m
+[32m+[m[32m    "name": "100 Reputation Mark Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Reputation Marks until you have earned a total of 100 additional Reputation Marks. (Minimum bonus of 1 Reputation Mark, every time at least one is earned.)",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "100% Discount Coupon: Tier 6 Ship",[m
+[32m+[m[32m    "name": "100% Discount Coupon: Tier 6 Ship",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "This Coupon allows you to claim a single Tier 6 Starship[[100% Discount Coupon: Tier 6 Ship#cite_note-1|&#039;&#039;&#039;*&#039;&#039;&#039;]] in the [[Zen Store]].\n\n\nNavigate to the Zen Store to review the selection of Starships available to you. To navigate to the Zen Store, you can click on the &#039;&#039;&#039;&quot;[[File:Zen small icon.png|15px|link=Zen]]STORE&quot;&#039;&#039;&#039; button attached to the bottom of your minimap. \n\n\n&lt;span id=&quot;cite_note-1&quot;&gt;&lt;span class=&quot;reference-text&quot;&gt;&#039;&#039;&#039;&#039;&#039;* Some exclusions may apply. Ships found in the New Items section of the Zen Store cannot be purchased with this coupon.&#039;&#039;&#039;&#039;&#039;&lt;/span&gt;&lt;/span&gt; (Event Version Only)",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "15 Minute Skill Bonus",[m
+[32m+[m[32m    "name": "15 Minute Skill Bonus",[m
+[32m+[m[32m    "rarity": "Uncommon",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "+20% Skill Points and Bridge Officer Skill Points for 15 minutes",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "150 Fleet Mark Bonus Pool",[m
+[32m+[m[32m    "name": "150 Fleet Mark Bonus Pool",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Fleet Marks until you have earned a total of 150 additional Fleet Marks. (Minimum bonus of 1 Fleet Mark, every time at least one is earned.)",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "150 Reputation Mark Bonus Pool",[m
+[32m+[m[32m    "name": "150 Reputation Mark Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Reputation Marks until you have earned a total of 150 additional Reputation Marks. (Minimum bonus of 1 Reputation Mark, every time at least one is earned.)",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "150,000 Experience Bonus Pool",[m
+[32m+[m[32m    "name": "150,000 Experience Bonus Pool",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 50% additional [[Experience Point|Skill Points]] until you have earned a total of 150,000 additional Skill Points.\n\n\nYou must complete the tutorial before you can use this item.",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "2,000 CXP Bonus Pool",[m
+[32m+[m[32m    "name": "2,000 CXP Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Duty Officer Commendation Experience points until you have earned a total of 2,000 additional Commendation Points.",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "2,000 R&amp;D Research XP Bonus Pool",[m
+[32m+[m[32m    "name": "2,000 R&amp;#38;D Research XP Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Research XP until you have earned a total of 2,00 Research XP",[m
+[32m+[m[32m    "text2": "This bonus applies to Research XP from R&amp;D schools",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "20,000 CXP Bonus Pool",[m
+[32m+[m[32m    "name": "20,000 CXP Bonus Pool",[m
+[32m+[m[32m    "rarity": "Ultra Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Duty Officer Commendation Experience points until you have earned a total of 20,000 additional Commendation Points.",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "20,000 R&amp;D Research XP Bonus Pool",[m
+[32m+[m[32m    "name": "20,000 R&amp;#38;D Research XP Bonus Pool",[m
+[32m+[m[32m    "rarity": "Ultra Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Research XP until you have earned a total of 20,000 Research XP",[m
+[32m+[m[32m    "text2": "This bonus applies to Research XP from all R&amp;D Schools",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "2399 Starfleet Phaser Sniper Rifle",[m
+[32m+[m[32m    "name": "2399 Starfleet Phaser Sniper Rifle",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Equip",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "&#039;&#039;&#039;Bolt Setting&#039;&#039;&#039;",[m
+[32m+[m[32m    "head2": "&#039;&#039;&#039;Sniper Shot&#039;&#039;&#039;",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": "&#039;&#039;Exploit Attack&#039;&#039;",[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Phaser Damage\n: __ Phaser Damage (__ DPS)\n: +30% Bonus Phaser Damage vs Low Health Targets.",[m
+[32m+[m[32m    "text2": "Phaser Damage and Knockback\n: __ Phaser Damage (__ DPS)\n: 50% chance: to target: Knocks back +20 meters\n: +30% Bonus Phaser Damage vs Low Health Targets.\n: 8 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "2399 Starfleet Phaser Stun Pistol",[m
+[32m+[m[32m    "name": "2399 Starfleet Phaser Stun Pistol",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Equip",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Bolt Setting",[m
+[32m+[m[32m    "head2": "Stun Beam Setting",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": "Expose Attack",[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Phaser Damage\n: to target: __ Phaser Damage x2 (__ DPS)\n: +30% Bonus Phaser Damage vs Low Health Targets.",[m
+[32m+[m[32m    "text2": "Stuns Target\n: __ Phaser Damage x2 (__ DPS)\n: -50% Runspeed for 6 sec\n: +2 Stun for 6 sec\n: to target: Damage x2 (__ DPS)\n: +2 Stun for 6 sec\n: -50% Runspeed for 6 sec\n: +30% Bonus Phaser Damage vs Low Health Targets.\n: 6 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "25,000 Experience Bonus Pool",[m
+[32m+[m[32m    "name": "25,000 Experience Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 50% additional [[Experience Point|Skill Points]] until you have earned a total of 25,000 additional Skill Points.\n\n\nYou must complete the tutorial before you can use this item.",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "25,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "name": "25,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Fleet Credits during play until a total of 25,000 additional Fleet Credits.",[m
+[32m+[m[32m    "text2": "Bonus Fleet Credits granted by this boost do not apply to your leaderboard status.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "2nd Anniversary Party Box",[m
+[32m+[m[32m    "name": "2nd Anniversary Party Box",[m
+[32m+[m[32m    "rarity": "Uncommon",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "This container holds a surprise to celebrate STO&#039;s second Anniversary.&lt;br&gt;&lt;br&gt;\nOpen it and find out what lies inside!",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "31st Century Temporal Technologies Set",[m
+[32m+[m[32m    "name": "Console - Universal - Causal Anchor",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Universal Console",[m
+[32m+[m[32m    "boundto": "character",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": "Equippable on 31st Century Temporal Starships",[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": "Causal Anchor",[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "+15% Exotic Damage",[m
+[32m+[m[32m    "text2": "+2% Exotic Damage Critical Chance",[m
+[32m+[m[32m    "text3": "Summon Causal Anchor\n: Create a pair of level __ Temporal Anomalies for 30 sec\n: Temporal Anomaly (3 km radius)\n: * Slowly move toward one another\n: * ____ Physical Damage per sec (ignores shields)\n: ** &#039;&#039;(Damage increases as Anomalies get closer to one another&#039;&#039;\n: * -0.21 Repel\n: * When two Anomalies come in contact with one another (or after 30 sec)\n: ** _____ Physical Damage (100% Shield Penetration) to up to 5 targets within 3km\n: ** 30 Repel to up to 5 targets within 3km",[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "31st Century Temporal Technologies Set",[m
+[32m+[m[32m    "name": "Console - Universal - Chronotachyon Capacitor",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Universal Console",[m
+[32m+[m[32m    "boundto": "character",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": "Equippable on 31st Century Temporal Starships",[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": "Chronotachyon Capacitance",[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "+15 Starship Hull Capacity\n: &#039;&#039;(Increases Maximum Hitpoints)&#039;&#039;",[m
+[32m+[m[32m    "text2": "+50 Engineering Readiness\n: &#039;&#039;(Improves Engineering Bridge Officer Cooldowns)&#039;&#039;",[m
+[32m+[m[32m    "text3": "PBAoE Foe Taunt, Hull and Shield Heal, Delayed +Damage, +Critical Chance, +Critical Severity Buff\n: * Taunts up to 5 foes within 5km for 15 sec\n: * + ___ Hull Healing every 1 sec for 15 sec\n: * + ___ Shield Healing every 1 sec for 15 sec\n: * After 15 sec applies &#039;&#039;&#039;Chronotachyon Charge&#039;&#039;&#039; to self:\n::&#039;&#039;(Effects scale with stacks of Chronotachyon Capacitance charges)&#039;&#039;\n: ** +20-40% Bonus Directed Energy Damage for 15 seconds\n: ** +5-10% Critical Hit Chance for 15 sec\n: ** +25-50% Critical Severity for 15 sec\n: * Incoming Energy Damage adds:\n: ** To self +1 &#039;&#039;&#039;Chronotachyon Capacitance&#039;&#039;&#039; counter for 15 sec (Stacks up to 20 times)",[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "31st Century Temporal Technologies Set",[m
+[32m+[m[32m    "name": "Console - Universal - Tactical System Stabilizer",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Universal Console",[m
+[32m+[m[32m    "boundto": "character",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": "Equippable on 31st Century Temporal Starships",[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": "Overload Tactical Systems",[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "+20 Starship Energy Weapon Training\n: &#039;&#039;(Improves Energy Weapon Damage)&#039;&#039;",[m
+[32m+[m[32m    "text2": "+50 Starship Tactical Readiness\n: &#039;&#039;(Improves Tactical Bridge Officer Cooldowns)&#039;&#039;",[m
+[32m+[m[32m    "text3": "+ Weapon Cycle Haste, +Bridge Officer Recharge\n: * Self: -5% Recharge Time on Bridge Officer abilities every 3 sec for 30 sec\n: * 30% Firing Cycle Haste for Energy Weapons for 30 Sec",[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "32c-Modified Phaser weapons (ground)",[m
+[32m+[m[32m    "name": "32c Modified Phaser Stun Bolt Pistol",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Equip",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Bolt Setting",[m
+[32m+[m[32m    "head2": "Stun Beam Setting",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": "Expose Attack",[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Phaser Damage\n: __ Phaser Damage (__ DPS)\n: 5% chance: Recover 3.3% Recharge of Kit Module per sec",[m
+[32m+[m[32m    "text2": "Stuns Target\n: __ Phaser Damage x2 (__ DPS)\n: -50% Runspeed for 6 sec\n: +2 Stun for 6 sec\n: 5% chance: Recover 3.3% Recharge of Kit Module per sec\n: 6 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "32c-Modified Phaser weapons (ground)",[m
+[32m+[m[32m    "name": "32c Modified Phaser Wide Bolt Pistol",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Equip",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Bolt Setting",[m
+[32m+[m[32m    "head2": "Wide Bolt Setting",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": "Expose Attack",[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Phaser Damage\n: __ Phaser Damage (__ DPS)\n: 5% chance: Recover 3.3% Recharge of Kit Module per sec",[m
+[32m+[m[32m    "text2": "Cone AoE Phaser Damage\n: __ Phaser Damage (__ DPS)\n: 5% chance: Recover 3.3% Recharge of Kit Module per sec\n: 4 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "32c-Standard Issue Phaser weapons (ground)",[m
+[32m+[m[32m    "name": "32c Standard Issue Phaser Stun Bolt Pistol",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Equip",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Bolt Setting",[m
+[32m+[m[32m    "head2": "Stun Beam Setting",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": "Expose Attack",[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Phaser Damage\n: __ Phaser Damage (__ DPS)\n: 5% chance: Recover 33% Recharge of Kit Module",[m
+[32m+[m[32m    "text2": "Stuns Target\n: __ Phaser Damage x2 (__ DPS)\n: -50% Runspeed for 6 sec\n: +2 Stun for 6 sec\n: 5% chance: Recover 33% Recharge of Kit Module\n: 6 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "32c-Standard Issue Phaser weapons (ground)",[m
+[32m+[m[32m    "name": "32c Standard Issue Phaser Wide Bolt Pistol",[m
+[32m+[m[32m    "rarity": "Very Rare",[m
+[32m+[m[32m    "type": "Ground Weapon",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Equip",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": "Bolt Setting",[m
+[32m+[m[32m    "head2": "Wide Bolt Setting",[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": "Expose Attack",[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Phaser Damage\n: __ Phaser Damage (__ DPS)\n: 5% chance: Recover 33% Recharge of Kit Module",[m
+[32m+[m[32m    "text2": "Cone AoE Phaser Damage\n: __ Phaser Damage (__ DPS)\n: 5% chance: Recover 33% Recharge of Kit Module\n: 4 sec recharge",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "32nd Century Federation Vanity Shield",[m
+[32m+[m[32m    "name": "32nd Century Federation Vanity Shield",[m
+[32m+[m[32m    "rarity": "Epic",[m
+[32m+[m[32m    "type": "Ship Vanity Shield",[m
+[32m+[m[32m    "boundto": "character",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": null,[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "35,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "name": "35,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "rarity": "Ultra Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Fleet Credits during play until a total of 35,000 additional Fleet Credits",[m
+[32m+[m[32m    "text2": "Bonus Fleet Credits granted by this boost do not apply to your leaderboard status",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "3rd Anniversary Party Box",[m
+[32m+[m[32m    "name": "3rd Anniversary Party Box",[m
+[32m+[m[32m    "rarity": "Uncommon",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Contains a random surprise!",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "4th Anniversary Party Box",[m
+[32m+[m[32m    "name": "4th Anniversary Party Box",[m
+[32m+[m[32m    "rarity": "Uncommon",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "Contains a random surprise!",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "5,000 CXP Bonus Pool",[m
+[32m+[m[32m    "name": "5,000 CXP Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Duty Officer Commendation Experience points until you have earned a total of 5,000 additional Commendation Points.",[m
+[32m+[m[32m    "text2": null,[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "5,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "name": "5,000 Fleet Credit Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": null,[m
+[32m+[m[32m    "boundwhen": null,[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head7": null,[m
+[32m+[m[32m    "head8": null,[m
+[32m+[m[32m    "head9": null,[m
+[32m+[m[32m    "subhead1": null,[m
+[32m+[m[32m    "subhead2": null,[m
+[32m+[m[32m    "subhead3": null,[m
+[32m+[m[32m    "subhead4": null,[m
+[32m+[m[32m    "subhead5": null,[m
+[32m+[m[32m    "subhead6": null,[m
+[32m+[m[32m    "subhead7": null,[m
+[32m+[m[32m    "subhead8": null,[m
+[32m+[m[32m    "subhead9": null,[m
+[32m+[m[32m    "text1": "You will earn 20% additional Fleet Credits during play until a total of 5,000 additional Fleet Credits.",[m
+[32m+[m[32m    "text2": "Bonus Fleet Credits granted by this boost do not apply to your leaderboard status.",[m
+[32m+[m[32m    "text3": null,[m
+[32m+[m[32m    "text4": null,[m
+[32m+[m[32m    "text5": null,[m
+[32m+[m[32m    "text6": null,[m
+[32m+[m[32m    "text7": null,[m
+[32m+[m[32m    "text8": null,[m
+[32m+[m[32m    "text9": null[m
+[32m+[m[32m  },[m
+[32m+[m[32m  {[m
+[32m+[m[32m    "Page": "50 Fleet Mark Bonus Pool",[m
+[32m+[m[32m    "name": "50 Fleet Mark Bonus Pool",[m
+[32m+[m[32m    "rarity": "Rare",[m
+[32m+[m[32m    "type": "Inventory",[m
+[32m+[m[32m    "boundto": "account",[m
+[32m+[m[32m    "boundwhen": "Pickup",[m
+[32m+[m[32m    "who": null,[m
+[32m+[m[32m    "head1": null,[m
+[32m+[m[32m    "head2": null,[m
+[32m+[m[32m    "head3": null,[m
+[32m+[m[32m    "head4": null,[m
+[32m+[m[32m    "head5": null,[m
+[32m+[m[32m    "head6": null,[m
+[32m+[m[32m    "head
